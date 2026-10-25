@@ -17,7 +17,7 @@ const view = params.get('view') ?? 'monitor'
 const locale = params.get('locale') === 'ru' ? 'ru' : 'en'
 const interval = Number(params.get('interval') ?? 2000)
 const staleAfter = params.get('stale') ? Number(params.get('stale')) : undefined
-const routing = params.get('routing') === 'orthogonal' ? 'orthogonal' : 'spline'
+const edgeStyle = params.get('edges') === 'smooth' ? 'smooth' : 'orthogonal'
 const direction = (params.get('direction') as 'TB' | 'LR' | null) ?? undefined
 const graph = ref<Graph>(view === 'large' ? largeGraph(Number(params.get('n') ?? 500)) : view === 'empty' ? emptyGraph() : orderProcess)
 
@@ -59,7 +59,7 @@ async function onToggle(change: ToggleChange): Promise<void> {
       :poll="poll"
       :stale-after-ms="staleAfter"
       :locale="locale"
-      :routing="routing"
+      :edge-style="edgeStyle"
       :direction="direction"
       toggleable
       :on-toggle="onToggle"

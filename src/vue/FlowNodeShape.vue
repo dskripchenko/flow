@@ -39,8 +39,8 @@ const iconComp = computed<Component | undefined>(() => props.icon ?? (props.def.
 const showTile = computed(() => !!iconComp.value && (shape.value === 'rect' || shape.value === 'rounded' || shape.value === 'pill'))
 const status = computed(() => props.run?.status)
 const statusIcon = computed(() => (status.value ? STATUS_ICONS[status.value] : undefined))
-const lineH = 17
-const descH = 14
+const lineH = 18
+const descH = 15
 
 const outline = computed(() => {
   const W = w.value
@@ -64,14 +64,14 @@ const text = computed(() => {
   const desc = props.geometry.descriptionLines
   const total = lines.length * lineH + desc.length * descH
   if (round.value) {
-    if (props.labelSide === 'right') return { x: w.value + 8, y: h.value / 2 + 4 - ((lines.length - 1) * lineH) / 2, anchor: 'start' as const }
-    return { x: w.value / 2, y: h.value + 16, anchor: 'middle' as const }
+    if (props.labelSide === 'right') return { x: w.value + 10, y: h.value / 2 + 4.5 - ((lines.length - 1) * lineH) / 2, anchor: 'start' as const }
+    return { x: w.value / 2, y: h.value + 18, anchor: 'middle' as const }
   }
-  const left = showTile.value ? 46 : 14
+  const left = showTile.value ? 52 : 16
   const centred = shape.value === 'diamond' || (!showTile.value && shape.value !== 'note')
   return {
     x: centred ? w.value / 2 : left,
-    y: (h.value - total) / 2 + 13,
+    y: (h.value - total) / 2 + 14,
     anchor: centred ? ('middle' as const) : ('start' as const),
   }
 })
@@ -91,7 +91,15 @@ const chipPos = computed(() => {
 })
 const badgeWidth = computed(() => (chip.value?.kind === 'badge' ? Math.max(20, chip.value.text.length * 7 + 10) : 20))
 const count = computed(() => (props.run?.count !== undefined && props.run.count !== null ? String(props.run.count) : ''))
-const countWidth = computed(() => Math.max(22, count.value.length * 7 + 12))
+const countWidth = computed(() => Math.max(24, count.value.length * 7 + 14))
+const countTone = computed(() => (status.value === 'active' || props.current ? 'accent' : status.value === 'error' ? 'danger' : 'neutral'))
+const countPos = computed(() => {
+  if (round.value) return { x: w.value * 0.1, y: h.value * 0.1 }
+  if (shape.value === 'diamond') return { x: w.value / 2, y: h.value }
+  return { x: w.value - countWidth.value / 2 - (chip.value ? chipRoom.value : 10), y: 0 }
+})
+/** Room the corner chip takes on the top edge. */
+const chipRoom = computed(() => (chip.value?.kind === 'badge' ? badgeWidth.value / 2 + 8 : 18))
 const statusTitle = computed(() => (status.value ? (props.labels.statuses[status.value] ?? status.value) : ''))
 </script>
 
@@ -228,15 +236,15 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
       class="fl-node__tile"
     >
       <rect
-        :x="10"
-        :y="h / 2 - 14"
-        width="28"
-        height="28"
-        rx="7"
+        :x="12"
+        :y="h / 2 - 15"
+        width="30"
+        height="30"
+        rx="8"
       />
       <component
         :is="iconComp"
-        :x="16"
+        :x="19"
         :y="h / 2 - 8"
         :width="16"
         :height="16"
@@ -340,11 +348,13 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
       </template>
     </g>
 
-    <!-- Instance counter, bottom-right corner. -->
+    <!-- Instance counter: a quiet pill on the top edge (beside the status
+         chip), under a diamond, at the top-left of a circle. -->
     <g
       v-if="count"
       class="fl-node__count"
-      :transform="`translate(${round ? w * 0.12 : shape === 'diamond' ? w * 0.75 : w - countWidth / 2 - 6} ${round ? h * 0.12 : shape === 'diamond' ? h * 0.75 : h})`"
+      :class="`fl-node__count--${countTone}`"
+      :transform="`translate(${countPos.x} ${countPos.y})`"
     >
       <title>{{ labels.instances }}: {{ count }}</title>
       <rect

@@ -20,7 +20,7 @@ import {
   useToast,
 } from '@dskripchenko/ui'
 import { ChevronLeft, RefreshCw } from '@dskripchenko/ui/icons'
-import { STATUS_TONES, defaultRegistry, isEnabled, statusSummary, type ElementRef, type FlowEdge, type FlowNode, type Graph, type MonitorSnapshot, type MonitorState, type NodeTypeRegistry, type Routing } from '../index'
+import { STATUS_TONES, defaultRegistry, isEnabled, statusSummary, type ElementRef, type FlowEdge, type FlowNode, type Graph, type MonitorSnapshot, type MonitorState, type NodeTypeRegistry } from '../index'
 import FlowCanvas from './FlowCanvas.vue'
 import FlowDetails from './FlowDetails.vue'
 import { resolveLabels, type FlowLabels } from './labels'
@@ -68,7 +68,8 @@ const props = withDefaults(
     controls?: boolean
     /** Layout direction; `auto` (the default without `meta.direction`) follows the canvas shape. */
     direction?: 'TB' | 'LR' | 'auto'
-    routing?: Routing
+    /** `orthogonal` (right angles, the default) or `smooth` (curves). */
+    edgeStyle?: 'orthogonal' | 'smooth'
     registry?: NodeTypeRegistry
     nodeRenderers?: Record<string, Component>
     nodeIcons?: Record<string, Component>
@@ -94,7 +95,7 @@ const props = withDefaults(
     minimap: true,
     controls: true,
     direction: undefined,
-    routing: 'spline',
+    edgeStyle: 'orthogonal',
     registry: () => defaultRegistry,
     nodeRenderers: () => ({}),
     nodeIcons: () => ({}),
@@ -351,7 +352,7 @@ defineExpose({
         :labels="L"
         :registry="registry"
         :direction="direction"
-        :routing="routing"
+        :edge-style="edgeStyle"
         :monitor="monitor.state.value"
         :reserve-counters="monitoring"
         :selection="selection"

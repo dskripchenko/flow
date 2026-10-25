@@ -14,7 +14,6 @@ import {
   boundsOf,
   defaultRegistry,
   isEnabled,
-  fitView,
   isVisible,
   layoutGraph,
   nearestInDirection,
@@ -36,7 +35,6 @@ import {
   type NodeTypeRegistry,
   type Point,
   type PortSide,
-  type Routing,
   type TextMeasurer,
   type Viewport,
   type ZoomLimits,
@@ -87,7 +85,8 @@ const props = withDefaults(
     registry?: NodeTypeRegistry
     /** `auto` (the default without `meta.direction`) picks LR for a landscape canvas and TB for a portrait one. */
     direction?: 'TB' | 'LR' | 'auto'
-    routing?: Routing
+    /** `orthogonal` (right angles, the default) or `smooth` (curves). */
+    edgeStyle?: 'orthogonal' | 'smooth'
     monitor?: MonitorState
     /** Room beside edge labels for counters (keeps layout stable once counters arrive). */
     reserveCounters?: boolean
@@ -119,7 +118,7 @@ const props = withDefaults(
   {
     registry: () => defaultRegistry,
     direction: undefined,
-    routing: 'spline',
+    edgeStyle: 'orthogonal',
     monitor: undefined,
     selection: () => [],
     issues: undefined,
@@ -184,7 +183,7 @@ const layout = computed<GraphLayout>(() => {
     return layoutGraph(props.graph, {
       registry: props.registry,
       direction: direction.value,
-      routing: props.routing,
+      routing: props.edgeStyle === 'smooth' ? 'spline' : 'orthogonal',
       measure: measure.value,
       edgeLabelExtra: props.reserveCounters ? 30 : 0,
     })
@@ -230,6 +229,7 @@ const edgeGeometry = computed<Map<string, EdgeGeometry>>(() => {
     waypoints,
     labelAt: new Map(),
     labels,
+    groups: layout.value.groups,
   }, affected)
   const out = new Map(base)
   for (const [id, g] of rerouted) out.set(id, g)
@@ -864,75 +864,90 @@ const toolbar = computed(() => {
 // Fit and lifecycle
 // ---------------------------------------------------------------------------
 
-function fit(smooth = false): void {
-  const b = layout.value.bounds
-  if (b.width === 0 && b.height === 0) return
-  vp.fit(b, smooth)
-}
-
-/** Below this zoom labels are hard to read; the first view then shows the start (or the current step) instead. */
-const READABLE = 0.62
-/** The user has panned or zoomed: automatic moves stop. */
-let userMoved = false
-
-/** Where a reader starts: the current step, else a start node, else the first node along the flow. */
-function focusNode(): { box: NodeGeometry; current: boolean } | undefined {
-  const boxes = nodeBoxes.value
-  for (const id of props.monitor?.current ?? []) {
-    const b = boxes.get(id)
-    if (b) return { box: b, current: true }
+/** Screen space taken by overlays (status line, breadcrumb, controls, minimap), measured from the DOM. */
+function insets(): { top: number; right: number; bottom: number; left: number } {
+  const el = root.value
+  const out = { top: 16, right: 16, bottom: 16, left: 16 }
+  if (!el) return out
+  const r = el.getBoundingClientRect()
+  for (const o of el.querySelectorAll<HTMLElement>('.fl-status, .fl-nav')) {
+    const b = o.getBoundingClientRect()
+    if (b.height > 0 && b.top - r.top < r.height / 3) out.top = Math.max(out.top, b.bottom - r.top + 12)
   }
-  const start = props.graph.nodes.find((n) => typeOf(props.registry, n.type).noIncoming && boxes.has(n.id))
-  if (start) return { box: boxes.get(start.id)!, current: false }
-  const lr = layout.value.direction === 'LR'
-  let best: NodeGeometry | undefined
-  for (const b of boxes.values()) if (!best || (lr ? b.x < best.x : b.y < best.y)) best = b
-  return best ? { box: best, current: false } : undefined
+  for (const o of el.querySelectorAll<HTMLElement>('.fl-controls, .fl-minimap, .fl-hint')) {
+    const b = o.getBoundingClientRect()
+    if (b.height > 0 && r.bottom - b.bottom < r.height / 3) out.bottom = Math.max(out.bottom, r.bottom - b.top + 12)
+  }
+  return out
 }
 
 /**
- * A view with `f` in the middle, shifted so the flow's leading edge sits at
- * the screen edge (no empty half-screen before the start) while `f` stays in view.
+ * The offset along one axis: the graph centred when it fits, else `focus`
+ * centred but clamped so no empty space shows before the graph's start or
+ * after its end.
  */
-function viewOn(f: NodeBox, k: number): Viewport {
-  const { width, height } = vp.size.value
-  const b = layout.value.bounds
-  let x = width / 2 - f.x * k
-  let y = height / 2 - f.y * k
-  if (layout.value.direction === 'LR') {
-    const lead = 56 - b.x * k
-    if (x > lead && (f.x + f.width / 2) * k + lead < width - 48) x = lead
-  } else {
-    const lead = 76 - b.y * k
-    if (y > lead && (f.y + f.height / 2) * k + lead < height - 72) y = lead
-  }
-  return { k, x, y }
+function place(k: number, focus: number, g0: number, g1: number, a: number, len: number): number {
+  if ((g1 - g0) * k <= len) return a + len / 2 - ((g0 + g1) / 2) * k
+  const t = a + len / 2 - focus * k
+  return Math.min(a - g0 * k, Math.max(a + len - g1 * k, t))
 }
 
-/** The first view of a graph: whole when it is readable that way, else from its start at a readable zoom. */
+function viewAt(k: number, focus: { x: number; y: number }): Viewport {
+  const { width, height } = vp.size.value
+  const b = layout.value.bounds
+  const i = insets()
+  return {
+    k,
+    x: place(k, focus.x, b.x, b.x + b.width, i.left, width - i.left - i.right),
+    y: place(k, focus.y, b.y, b.y + b.height, i.top, height - i.top - i.bottom),
+  }
+}
+
+/** The zoom that shows the whole graph between the overlays (never above 100 %). */
+function wholeZoom(): number {
+  const { width, height } = vp.size.value
+  const b = layout.value.bounds
+  const i = insets()
+  const k = Math.min((width - i.left - i.right) / Math.max(1, b.width), (height - i.top - i.bottom) / Math.max(1, b.height), 1)
+  return Math.min(props.maxZoom, Math.max(props.minZoom, k))
+}
+
+/** Shows the whole graph (the fit button). */
+function fit(smooth = false): void {
+  const b = layout.value.bounds
+  if ((b.width === 0 && b.height === 0) || !vp.size.value.width) return
+  vp.set(viewAt(wholeZoom(), { x: b.x + b.width / 2, y: b.y + b.height / 2 }), smooth)
+}
+
+/** Below this zoom labels are hard to read: the first view never opens smaller. */
+const READABLE = 0.85
+/** The user has panned or zoomed: automatic moves stop. */
+let userMoved = false
+
+/** Where a reader starts: the current step, else an active one, else a start node, else the first node along the flow. */
+function focusNode(): NodeGeometry | undefined {
+  const boxes = nodeBoxes.value
+  for (const id of props.monitor?.current ?? []) if (boxes.has(id)) return boxes.get(id)
+  for (const [id, st] of Object.entries(props.monitor?.nodes ?? {})) if (st.status === 'active' && boxes.has(id)) return boxes.get(id)
+  const start = props.graph.nodes.find((n) => typeOf(props.registry, n.type).noIncoming && boxes.has(n.id))
+  if (start) return boxes.get(start.id)
+  const lr = layout.value.direction === 'LR'
+  let best: NodeGeometry | undefined
+  for (const b of boxes.values()) if (!best || (lr ? b.x < best.x : b.y < best.y)) best = b
+  return best
+}
+
+/** The first view: the whole graph when it fits at a readable zoom, else 100 % on the step that matters. */
 function autoFit(): void {
   const b = layout.value.bounds
-  const { width, height } = vp.size.value
-  if ((b.width === 0 && b.height === 0) || !width || !height) return
-  const whole = fitView(b, width, height, Math.min(48, width / 8), { min: props.minZoom, max: props.maxZoom })
-  if (whole.k >= READABLE) {
-    vp.set(whole)
+  if ((b.width === 0 && b.height === 0) || !vp.size.value.width) return
+  const whole = wholeZoom()
+  if (whole >= READABLE) {
+    fit()
     return
   }
-  const focus = focusNode()
-  if (!focus) {
-    vp.set(whole)
-    return
-  }
-  const k = Math.min(READABLE, props.maxZoom)
-  const f = focus.box
-  if (focus.current) {
-    vp.set(viewOn(f, k))
-  } else if (layout.value.direction === 'LR') {
-    vp.set({ k, x: 56 - (f.x - f.width / 2) * k, y: height / 2 - f.y * k })
-  } else {
-    vp.set({ k, x: width / 2 - f.x * k, y: 72 - (f.y - f.height / 2) * k })
-  }
+  const f = focusNode() ?? { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+  vp.set(viewAt(Math.min(1, props.maxZoom), f))
 }
 
 let ro: ResizeObserver | undefined
@@ -1001,7 +1016,7 @@ watch(
   (id, before) => {
     if (!id || userMoved || !fitted) return
     const b = nodeBoxes.value.get(id)
-    if (b && (!before || !isVisible(vp.current(), b, vp.size.value.width, vp.size.value.height, 32))) vp.set(viewOn(b, vp.current().k), true)
+    if (b && (!before || !isVisible(vp.current(), b, vp.size.value.width, vp.size.value.height, 32))) vp.set(viewAt(vp.current().k, b), true)
   },
 )
 
@@ -1045,6 +1060,18 @@ defineExpose({
   nodeBoxes,
   root,
 })
+
+/** The node's group and its ancestors, space-separated (for tests and host styling). */
+function groupChain(id: string | undefined): string | undefined {
+  const parent = new Map((props.graph.groups ?? []).map((g) => [g.id, g.parent]))
+  const out: string[] = []
+  let g = id
+  while (g !== undefined && !out.includes(g) && out.length < 50) {
+    out.push(g)
+    g = parent.get(g)
+  }
+  return out.length ? out.join(' ') : undefined
+}
 
 function iconFor(n: FlowNode): Component | undefined {
   const def = typeOf(props.registry, n.type)
@@ -1155,6 +1182,8 @@ function iconFor(n: FlowNode): Component | undefined {
               class="fl-edge"
               :class="edgeClass(e)"
               :data-edge-id="e.id"
+              :data-from="e.from"
+              :data-to="e.to"
               @pointerenter="setHover(e.id)"
               @pointerleave="setHover(null)"
             >
@@ -1185,6 +1214,7 @@ function iconFor(n: FlowNode): Component | undefined {
             :class="{ 'is-hovered': hoverId === n.id, 'is-drop-target': connectPreview?.target === n.id }"
             :data-node-id="n.id"
             :data-focus-id="n.id"
+            :data-groups="groupChain(n.group)"
             :transform="`translate(${nodeBoxes.get(n.id)!.x - nodeBoxes.get(n.id)!.width / 2} ${nodeBoxes.get(n.id)!.y - nodeBoxes.get(n.id)!.height / 2})`"
             tabindex="0"
             role="button"
@@ -1262,14 +1292,14 @@ function iconFor(n: FlowNode): Component | undefined {
                 <text
                   class="fl-edge-label__text"
                   :x="edgeGeometry.get(e.id)!.label!.x - (edgeCount(e) || reserveCounters ? 15 : 0)"
-                  :y="edgeGeometry.get(e.id)!.label!.y - (edgeGeometry.get(e.id)!.label!.lines.length - 1) * 7 + 4"
+                  :y="edgeGeometry.get(e.id)!.label!.y - (edgeGeometry.get(e.id)!.label!.lines.length - 1) * 7.5 + 4.5"
                   text-anchor="middle"
                 >
                   <tspan
                     v-for="(line, i) in edgeGeometry.get(e.id)!.label!.lines"
                     :key="i"
                     :x="edgeGeometry.get(e.id)!.label!.x - (edgeCount(e) || reserveCounters ? 15 : 0)"
-                    :dy="i === 0 ? 0 : 14"
+                    :dy="i === 0 ? 0 : 15"
                   >{{ line }}</tspan>
                 </text>
                 <g

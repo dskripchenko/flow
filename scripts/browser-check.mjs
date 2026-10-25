@@ -68,6 +68,32 @@ async function geometry(page) {
     const labels = [...document.querySelectorAll('.fl-edge-label__bg')].map((r) => ({ id: r.closest('[data-edge-id]').dataset.edgeId, r: rect(r) }))
     for (const l of labels) for (const n of nodes) if (overlap(l.r, n.body, 1)) problems.push(`edge label ${l.id} over ${n.id}`)
     for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) if (overlap(labels[i].r, labels[j].r, 1)) problems.push(`edge labels ${labels[i].id} × ${labels[j].id}`)
+    // Edges: not through other nodes, not through groups holding neither end.
+    const groups = [...document.querySelectorAll('[data-group-id]')].map((g) => ({ id: g.dataset.groupId, r: rect(g.querySelector('rect')) }))
+    const groupsOf = (id) => (document.querySelector(`[data-node-id="${CSS.escape(id)}"]`)?.dataset.groups ?? '').split(' ').filter(Boolean)
+    const shrink = (r, d) => ({ x: r.x + d, y: r.y + d, w: r.w - 2 * d, h: r.h - 2 * d })
+    const inRect = (p, r) => p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h
+    for (const g of document.querySelectorAll('.fl-edge')) {
+      if (g.classList.contains('is-association')) continue
+      const path = g.querySelector('.fl-edge__line')
+      const m = path.getScreenCTM()
+      const len = path.getTotalLength()
+      const pts = []
+      for (let d = 0; d <= len; d += 4) {
+        const p = path.getPointAtLength(d)
+        pts.push({ x: m.a * p.x + m.c * p.y + m.e, y: m.b * p.x + m.d * p.y + m.f })
+      }
+      const { edgeId, from, to } = g.dataset
+      for (const n of nodes) {
+        if (n.id === from || n.id === to) continue
+        if (pts.some((p) => inRect(p, shrink(n.body, 2)))) problems.push(`edge ${edgeId} through node ${n.id}`)
+      }
+      const own = new Set([...groupsOf(from), ...groupsOf(to)])
+      for (const gr of groups) {
+        if (own.has(gr.id)) continue
+        if (pts.some((p) => inRect(p, shrink(gr.r, 2)))) problems.push(`edge ${edgeId} through group ${gr.id}`)
+      }
+    }
     return { problems, nodes: nodes.length, labels: labels.length }
   })
 }
@@ -79,6 +105,27 @@ const centre = async (page, selector) => {
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
 }
 // Let transitions (drawers, menus, the viewport) settle first.
+/** Node rectangles against the overlay rectangles (status line, controls, minimap, breadcrumb). */
+const overlayHits = (page, ids) =>
+  page.evaluate((ids) => {
+    const r = (el) => el.getBoundingClientRect()
+    const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+    const overlays = [...document.querySelectorAll('.fl-status, .fl-controls, .fl-minimap, .fl-nav')].map(r)
+    const canvas = r(document.querySelector('.fl-canvas'))
+    return [...document.querySelectorAll('[data-node-id]')]
+      .filter((n) => !ids || ids.includes(n.dataset.nodeId))
+      .filter((n) => {
+        const b = r(n)
+        const inside = b.left >= canvas.left && b.right <= canvas.right && b.top >= canvas.top && b.bottom <= canvas.bottom
+        return !inside || overlays.some((o) => hit(b, o))
+      })
+      .map((n) => n.dataset.nodeId)
+  }, ids)
+const nodesClear = async (page) => (await overlayHits(page)).length === 0
+const currentClear = async (page) => {
+  const ids = await currentNodes(page)
+  return ids.length > 0 && (await overlayHits(page, ids)).length === 0
+}
 const shot = async (page, name) => {
   await page.waitForTimeout(350)
   await page.screenshot({ path: `${out}/${name}.png` })
@@ -87,19 +134,24 @@ const shot = async (page, name) => {
 try {
   // ------------------------------------------------------------------ viewer
   for (const theme of ['light', 'dark']) {
-    for (const routing of ['spline', 'orthogonal']) {
-      const { page, errors, close } = await open(`?view=monitor&theme=${theme}&routing=${routing}&interval=700`)
+    for (const routing of ['orthogonal', 'smooth']) {
+      const { page, errors, close } = await open(`?view=monitor&theme=${theme}&edges=${routing}&interval=700`)
       await page.waitForSelector('.fl-node.is-current')
       await page.waitForTimeout(600)
       check(`monitor/${theme}/${routing}: renders without errors`, errors.length === 0, errors.join('; '))
-      check(`monitor/${theme}/${routing}: opens at a readable zoom`, (await zoomOf(page)) >= 0.6, String(await zoomOf(page)))
+      check(`monitor/${theme}/${routing}: opens at a readable zoom`, (await zoomOf(page)) >= 0.85, String(await zoomOf(page)))
+      check(`monitor/${theme}/${routing}: the current step is in view, clear of overlays`, await currentClear(page))
       const geo = await geometry(page)
-      check(`monitor/${theme}/${routing}: no overlapping nodes or labels`, geo.problems.length === 0, geo.problems.slice(0, 6).join('; '))
-      if (routing === 'spline') await shot(page, `view-${theme}-desktop`)
+      check(`monitor/${theme}/${routing}: no overlapping nodes or labels, no edges through nodes or foreign groups`, geo.problems.length === 0, geo.problems.slice(0, 6).join('; '))
+      if (routing === 'orthogonal') await shot(page, `view-${theme}-desktop`)
+      await page.locator('.fl-controls__fit').click()
+      await page.waitForTimeout(400)
+      check(`monitor/${theme}/${routing}: fit keeps every node clear of the overlays`, await nodesClear(page))
+      if (routing === 'orthogonal') await shot(page, `view-${theme}-desktop-fit`)
       await close()
     }
-    for (const routing of ['spline']) {
-      const { page, errors, close } = await open(`?view=monitor&theme=${theme}&routing=${routing}`, PHONE, { touch: true })
+    for (const routing of ['orthogonal']) {
+      const { page, errors, close } = await open(`?view=monitor&theme=${theme}&edges=${routing}`, PHONE, { touch: true })
       await page.waitForSelector('.fl-node.is-current')
       await page.waitForTimeout(400)
       check(`monitor/${theme}/phone: renders without errors`, errors.length === 0, errors.join('; '))
@@ -517,6 +569,9 @@ try {
 const dir = process.env.FLOW_SHOTS_DIR
 if (dir) {
   mkdirSync(dir, { recursive: true })
+  // The "after" half of the before/after pair (the "before" was kept by hand).
+  if (existsSync(resolve(out, 'view-light-desktop.png'))) copyFileSync(resolve(out, 'view-light-desktop.png'), resolve(dir, 'after-view-light-desktop.png'))
+  if (existsSync(resolve(out, 'editor-dark-desktop.png'))) copyFileSync(resolve(out, 'editor-dark-desktop.png'), resolve(dir, 'after-editor-dark-desktop.png'))
   for (const f of readdirSync(out)) if (f.endsWith('.png')) copyFileSync(resolve(out, f), resolve(dir, f))
 }
 if (failures.length) {

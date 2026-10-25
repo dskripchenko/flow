@@ -179,7 +179,7 @@
   stroke-width: 1;
 }
 .fl-edge-label__text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   fill: var(--fl-node-muted);
 }
@@ -204,20 +204,7 @@
 .fl-edge-label:not(:has(rect)) {
   pointer-events: none;
 }
-.fl-edge-count rect {
-  fill: var(--fl-node-text);
-  opacity: 0.85;
-}
-.fl-edge-count text {
-  font-size: 10px;
-  font-weight: 600;
-  fill: var(--fl-node-bg);
-  font-variant-numeric: tabular-nums;
-}
-.fl-edge-label.is-path .fl-edge-count rect {
-  fill: var(--fl-accent);
-  opacity: 1;
-}
+
 
 /* ------------------------------------------------------------------- nodes */
 
@@ -244,17 +231,17 @@
   stroke: var(--uid-border-hover, #a1a1aa);
 }
 .fl-node__label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   fill: var(--fl-node-text);
   pointer-events: none;
 }
 .fl-node__label--outside {
-  font-size: 12px;
+  font-size: 13px;
   fill: var(--fl-node-muted);
 }
 .fl-node__desc {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   fill: var(--fl-node-muted);
 }
@@ -295,7 +282,7 @@
   display: none;
 }
 .fl-node--note .fl-node__label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   fill: var(--fl-node-muted);
 }
@@ -398,17 +385,35 @@
   animation: fl-ping 1.6s ease-out infinite;
 }
 
-.fl-node__count rect {
-  fill: var(--fl-node-text);
+/* Counters: quiet pills in kit tokens; accent for an active step, danger for an error. */
+.fl-node__count rect,
+.fl-edge-count rect {
+  fill: var(--uid-surface-raised, #fff);
+  stroke: var(--uid-border-default, #d4d4d8);
+  stroke-width: 1;
 }
-.fl-node__count text {
-  font-size: 10.5px;
+.fl-node__count text,
+.fl-edge-count text {
+  font-size: 11px;
   font-weight: 600;
-  fill: var(--fl-node-bg);
+  fill: var(--uid-text-secondary, #71717a);
   font-variant-numeric: tabular-nums;
 }
-.fl-tone--accent .fl-node__count rect {
-  fill: var(--fl-accent);
+.fl-node__count--accent rect,
+.fl-edge-label.is-path .fl-edge-count rect {
+  fill: var(--fl-accent-subtle);
+  stroke: color-mix(in srgb, var(--fl-accent) 70%, transparent);
+}
+.fl-node__count--accent text,
+.fl-edge-label.is-path .fl-edge-count text {
+  fill: var(--uid-accent-text, var(--fl-accent));
+}
+.fl-node__count--danger rect {
+  fill: var(--fl-danger-subtle);
+  stroke: color-mix(in srgb, var(--fl-danger) 70%, transparent);
+}
+.fl-node__count--danger text {
+  fill: var(--fl-danger);
 }
 
 .fl-node__enter {

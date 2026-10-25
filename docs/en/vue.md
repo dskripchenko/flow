@@ -31,7 +31,7 @@ switches, drill-down into sub-processes and a details drawer.
 | `controls` | `boolean` | `true` | the zoom/fit bar |
 | `statusBar` | `boolean` | `true` | last update, staleness, summary by status |
 | `direction` | `'LR' \| 'TB' \| 'auto'` | `meta.direction`, else `auto` | `auto`: LR on a landscape box, TB on a portrait one |
-| `routing` | `'spline' \| 'orthogonal'` | `'spline'` | |
+| `edgeStyle` | `'orthogonal' \| 'smooth'` | `'orthogonal'` | right angles, or the same routes with smooth curves |
 | `registry` | `NodeTypeRegistry` | built-in types | custom node types |
 | `nodeRenderers` | `Record<type, Component>` | `{}` | custom node drawing |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | icons for types |
@@ -114,6 +114,15 @@ Props: `node`, `geometry` (`{ width, height, lines, … }`), `state` (the node's
 monitoring entry), `selected`, `disabled`, `current`, `labels`. The size comes
 from the type definition in the registry. For HTML content use
 `<foreignObject>`.
+
+### First view
+
+The graph opens at 100 % on the step that matters — the current step of the
+instance, else an active one, else the start — unless the whole graph fits at
+85 % or more, in which case it is shown whole. It never opens smaller than
+that; the fit button and the minimap give the overview. Fitting and centring
+keep nodes clear of the status line, the breadcrumb, the controls and the
+minimap, and no empty space is shown before the start or after the end.
 
 ### Keyboard and accessibility
 

@@ -29,7 +29,7 @@ import '@dskripchenko/flow/style.css'
 | `controls` | `boolean` | `true` | 缩放/适应工具条 |
 | `statusBar` | `boolean` | `true` | 最近更新时间、是否过期、按状态汇总 |
 | `direction` | `'LR' \| 'TB' \| 'auto'` | `meta.direction`，否则 `auto` | `auto`：横向容器用 LR，纵向容器用 TB |
-| `routing` | `'spline' \| 'orthogonal'` | `'spline'` | |
+| `edgeStyle` | `'orthogonal' \| 'smooth'` | `'orthogonal'` | 直角，或用平滑曲线绘制相同路线 |
 | `registry` | `NodeTypeRegistry` | 内置类型 | 自定义节点类型 |
 | `nodeRenderers` | `Record<type, Component>` | `{}` | 自定义节点绘制 |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | 类型的图标 |
@@ -105,6 +105,13 @@ defineProps<NodeRendererProps>()
 Prop：`node`、`geometry`（`{ width, height, lines, … }`）、`state`（该节点的监控条目）、
 `selected`、`disabled`、`current`、`labels`。尺寸取自注册表中的类型定义。
 HTML 内容请使用 `<foreignObject>`。
+
+### 初始视图
+
+图以 100 % 打开并定位到关键步骤——实例的当前步骤，否则是活动步骤，否则是开始
+节点——除非整个图在 85 % 或更大比例下能完整放下，这时整体显示。初始缩放不会更
+小；概览由“适应视图”按钮和小地图提供。适应和居中时节点不会被状态栏、面包屑、
+控制栏和小地图遮挡，起点之前和终点之后也不会留出空白。
 
 ### 键盘与无障碍
 

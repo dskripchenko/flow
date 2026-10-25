@@ -32,7 +32,7 @@ Detail-Drawer.
 | `controls` | `boolean` | `true` | die Leiste für Zoom/Einpassen |
 | `statusBar` | `boolean` | `true` | letzte Aktualisierung, Aktualität, Zusammenfassung nach Status |
 | `direction` | `'LR' \| 'TB' \| 'auto'` | `meta.direction`, sonst `auto` | `auto`: LR in einem Querformat-Container, TB in einem Hochformat-Container |
-| `routing` | `'spline' \| 'orthogonal'` | `'spline'` | |
+| `edgeStyle` | `'orthogonal' \| 'smooth'` | `'orthogonal'` | rechte Winkel oder dieselben Routen mit weichen Kurven |
 | `registry` | `NodeTypeRegistry` | eingebaute Typen | eigene Knotentypen |
 | `nodeRenderers` | `Record<type, Component>` | `{}` | eigene Darstellung von Knoten |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | Icons für Typen |
@@ -118,6 +118,16 @@ Props: `node`, `geometry` (`{ width, height, lines, … }`), `state` (der
 Monitoring-Eintrag des Knotens), `selected`, `disabled`, `current`, `labels`.
 Die Größe stammt aus der Typdefinition in der Registry. Für HTML-Inhalte
 verwenden Sie `<foreignObject>`.
+
+### Erste Ansicht
+
+Der Graph öffnet bei 100 % auf dem relevanten Schritt – dem aktuellen Schritt
+der Instanz, sonst einem aktiven, sonst dem Start –, es sei denn, der ganze
+Graph passt bei 85 % oder mehr; dann wird er vollständig gezeigt. Kleiner
+öffnet er nie; den Überblick geben die Einpassen-Schaltfläche und die
+Minimap. Beim Einpassen und Zentrieren bleiben Knoten frei von Statuszeile,
+Breadcrumb, Steuerleiste und Minimap, und vor dem Start oder nach dem Ende
+bleibt kein leerer Raum.
 
 ### Tastatur und Barrierefreiheit
 

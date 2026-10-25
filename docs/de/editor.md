@@ -83,7 +83,7 @@ Während der Eingabe in ein Feld werden Tastenkürzel ignoriert.
 | `palette` | `string[]` | alle Typen | welche Typen der Elementbereich anbietet, in dieser Reihenfolge |
 | `readonly` | `boolean` | `false` | nur ansehen |
 | `snapGrid` | `number` | `20` | `0` schaltet das Einrasten ab |
-| `direction`, `routing` | | | wie in FlowView |
+| `direction`, `edgeStyle` | | | wie in FlowView |
 | `nodeRenderers`, `nodeIcons` | | | wie in FlowView |
 | `mermaid` | `(source) => Graph` | — | aktiviert „Mermaid importieren“: übergeben Sie `fromMermaid` |
 | `locale`, `labels` | | `'en'` | |

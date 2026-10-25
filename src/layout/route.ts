@@ -234,7 +234,8 @@ function simplify(pts: Point[]): Point[] {
   return out
 }
 
-function roundedPath(pts: Point[], radius: number): string {
+/** Straight segments with rounded corners. */
+export function roundedPath(pts: readonly Point[], radius: number): string {
   let d = `M ${P(pts[0]!)}`
   for (let i = 1; i < pts.length - 1; i++) {
     const p = pts[i - 1]!
@@ -286,4 +287,85 @@ export function distanceToPolyline(p: Point, points: readonly Point[]): number {
     best = Math.min(best, dist(p, { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) }))
   }
   return best
+}
+
+/**
+ * Orthogonal routing through the layout's bends with as few corners as the
+ * obstacles allow: the route keeps its lane while `clear` says the way along
+ * the flow is free, and changes lane in the gap between two ranks (where no
+ * node stands) only when the next bend would be blocked. `mainX` is true when
+ * the flow runs along x (LR).
+ */
+export function orthogonalThrough(
+  from: Anchor,
+  to: Anchor,
+  waypoints: readonly Point[],
+  mainX: boolean,
+  clear: (a: Point, b: Point) => boolean,
+  radius = 10,
+  /** A bend the route must run through (the layout's label slot), so the label sits where room was reserved. */
+  through?: Point,
+): RoutedPath {
+  const m = (p: Point) => (mainX ? p.x : p.y)
+  const c = (p: Point) => (mainX ? p.y : p.x)
+  const at = (mv: number, cv: number): Point => (mainX ? { x: mv, y: cv } : { x: cv, y: mv })
+  const s0 = add(from.point, NORMAL[from.side], STUB)
+  const s1 = add(to.point, NORMAL[to.side], STUB)
+  const pts: Point[] = [from.point, s0]
+  let cur = s0
+  // A lane change may happen as soon as the route clears the node's outline.
+  let prevM = m(from.point) + Math.sign(m(s0) - m(from.point) || 1) * 6
+  /** Changes lane to `cv` somewhere between prevM and nextM, preferring the middle of the gap. */
+  const shift = (cv: number, nextM: number) => {
+    let bend = (prevM + nextM) / 2
+    for (const t of [0.5, 0.3, 0.7, 0.15, 0.85, 0.05, 0.95]) {
+      const b = prevM + (nextM - prevM) * t
+      if (clear(at(b, c(cur)), at(b, cv)) && clear(at(m(cur), c(cur)), at(b, c(cur)))) {
+        bend = b
+        break
+      }
+    }
+    pts.push(at(bend, c(cur)), at(bend, cv))
+    cur = at(bend, cv)
+  }
+  for (const w of waypoints) {
+    const required = !!through && Math.abs(w.x - through.x) < 0.5 && Math.abs(w.y - through.y) < 0.5
+    if (Math.abs(c(w) - c(cur)) < 1 || (!required && clear(cur, at(m(w), c(cur))))) {
+      prevM = m(w)
+      continue
+    }
+    shift(c(w), m(w))
+    prevM = m(w)
+  }
+  if (Math.abs(c(cur) - c(s1)) >= 1) shift(c(s1), m(s1))
+  pts.push(s1, to.point)
+  const clean = simplify(pts)
+  return { d: roundedPath(clean, radius), points: clean }
+}
+
+/** Whether an axis-aligned segment passes through a box (grown by `pad`). */
+export function segmentHitsBox(a: Point, b: Point, box: NodeBox, pad = 0): boolean {
+  const x0 = Math.min(a.x, b.x)
+  const x1 = Math.max(a.x, b.x)
+  const y0 = Math.min(a.y, b.y)
+  const y1 = Math.max(a.y, b.y)
+  const bx0 = box.x - box.width / 2 - pad
+  const bx1 = box.x + box.width / 2 + pad
+  const by0 = box.y - box.height / 2 - pad
+  const by1 = box.y + box.height / 2 + pad
+  return x1 > bx0 && x0 < bx1 && y1 > by0 && y0 < by1
+}
+
+/** The point of an orthogonal route at main-axis coordinate `mv` (for its label), if a segment along the flow covers it. */
+export function pointAtMain(points: readonly Point[], mv: number, mainX: boolean): Point | undefined {
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!
+    const b = points[i]!
+    const along = mainX ? Math.abs(a.y - b.y) < 0.5 : Math.abs(a.x - b.x) < 0.5
+    if (!along) continue
+    const lo = Math.min(mainX ? a.x : a.y, mainX ? b.x : b.y)
+    const hi = Math.max(mainX ? a.x : a.y, mainX ? b.x : b.y)
+    if (mv >= lo && mv <= hi) return mainX ? { x: mv, y: a.y } : { x: a.x, y: mv }
+  }
+  return undefined
 }

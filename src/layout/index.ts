@@ -6,7 +6,9 @@
 import { layout as layered, type LayoutCluster, type LayoutEdge, type LayoutNode, type LayoutResult } from './layered'
 import { portsOf, typeOf, defaultRegistry, type NodeTypeRegistry } from '../model/registry'
 import { approximateMeasurer, wrapText, type FontSpec, type TextMeasurer } from './text'
-import { facingSide, midpoint, route, sidePoint, spreadable, bezierPoint, clipToShape, type Anchor, type NodeBox, type Routing } from './route'
+import { isBehind, routeChannels, type BackEdgeInput } from './channels'
+import { placeLabels } from './labels'
+import { facingSide, midpoint, route, sidePoint, spreadable, bezierPoint, orthogonalThrough, pointAtMain, segmentHitsBox, type Anchor, type NodeBox, type Routing } from './route'
 import type { FlowEdge, FlowNode, Graph, Point, PortSide } from '../model/types'
 
 export type { NodeBox, Anchor, Routing } from './route'
@@ -28,15 +30,16 @@ export interface LayoutOptions {
   edgeLabelExtra?: number
 }
 
-export const LABEL_FONT: FontSpec = { size: 13, weight: 500 }
-export const DESCRIPTION_FONT: FontSpec = { size: 11 }
-export const EDGE_FONT: FontSpec = { size: 11, weight: 500 }
+export const LABEL_FONT: FontSpec = { size: 14, weight: 500 }
+export const DESCRIPTION_FONT: FontSpec = { size: 12 }
+export const EDGE_FONT: FontSpec = { size: 12, weight: 500 }
 /** The label beside a start/end circle. */
-export const OUTSIDE_FONT: FontSpec = { size: 12 }
-const LINE = 17
-const DESC_LINE = 14
-const PAD_X = 14
-const ICON_ROOM = 26
+export const OUTSIDE_FONT: FontSpec = { size: 13 }
+export const LINE = 18
+export const DESC_LINE = 15
+export const EDGE_LINE = 15
+const PAD_X = 16
+const ICON_ROOM = 30
 
 export interface NodeGeometry extends NodeBox {
   id: string
@@ -76,7 +79,7 @@ export function measureNode(node: FlowNode, registry: NodeTypeRegistry, measure:
   const def = typeOf(registry, node.type)
   const label = node.label ?? ''
   if (def.size) {
-    return { id: node.id, width: def.size.width, height: def.size.height, lines: label ? wrapText(label, 160, LABEL_FONT, measure, 2) : [], descriptionLines: [] }
+    return { id: node.id, width: def.size.width, height: def.size.height, lines: label ? wrapText(label, 160, OUTSIDE_FONT, measure, 2) : [], descriptionLines: [] }
   }
   const min = def.minWidth ?? 120
   const max = def.maxWidth ?? 220
@@ -91,7 +94,7 @@ export function measureNode(node: FlowNode, registry: NodeTypeRegistry, measure:
     ? Math.min(max, Math.max(min, textWidth / 0.62 + 8))
     : Math.min(max, Math.max(min, Math.ceil(textWidth + PAD_X * 2 + icon + 10)))
   const textHeight = lines.length * LINE + descriptionLines.length * DESC_LINE
-  const height = Math.max(def.height ?? 44, diamond ? textHeight * 2 + 16 : textHeight + 22)
+  const height = Math.max(def.height ?? 44, diamond ? textHeight * 2 + 20 : textHeight + 24)
   return { id: node.id, width: Math.round(width), height: Math.round(height), lines, descriptionLines }
 }
 
@@ -102,9 +105,9 @@ function edgeLabelText(e: FlowEdge): string {
 export function measureEdgeLabel(e: FlowEdge, measure: TextMeasurer, extra = 0): { width: number; height: number; lines: string[] } | undefined {
   const text = edgeLabelText(e)
   if (!text) return undefined
-  const lines = wrapText(text, 150, EDGE_FONT, measure, 2)
-  const width = Math.max(...lines.map((l) => measure(l, EDGE_FONT))) + 14 + extra
-  return { width: Math.ceil(width), height: lines.length * 14 + 8, lines }
+  const lines = wrapText(text, 160, EDGE_FONT, measure, 2)
+  const width = Math.max(...lines.map((l) => measure(l, EDGE_FONT))) + 16 + extra
+  return { width: Math.ceil(width), height: lines.length * EDGE_LINE + 8, lines }
 }
 
 /** Lays out a graph. */
@@ -112,7 +115,7 @@ export function layoutGraph(graph: Graph, options: LayoutOptions = {}): GraphLay
   const registry = options.registry ?? defaultRegistry
   const measure = options.measure ?? approximateMeasurer
   const direction: Direction = options.direction ?? graph.meta?.direction ?? 'LR'
-  const routing = options.routing ?? 'spline'
+  const routing = options.routing ?? 'orthogonal'
   const nodeIds = new Set(graph.nodes.map((n) => n.id))
   const groupIds = new Set((graph.groups ?? []).map((g) => g.id))
 
@@ -127,7 +130,16 @@ export function layoutGraph(graph: Graph, options: LayoutOptions = {}): GraphLay
   let groupBoxes = new Map<string, NodeBox>()
 
   if (fixed.length < graph.nodes.length) {
-    const result = runLayered(graph, sized, edges, labels, direction, groupIds, options)
+    let result = runLayered(graph, sized, edges, labels, direction, groupIds, options)
+    // Back edges go through a channel beside the graph (routeEdges): lay the
+    // flow out again without them, so they leave no gaps across it.
+    const back = new Set(
+      edges
+        .filter((e) => channelled(e, graph) && result.nodes.has(e.from) && result.nodes.has(e.to))
+        .filter((e) => isBehind(result.nodes.get(e.from)!, result.nodes.get(e.to)!, direction))
+        .map((e) => e.id),
+    )
+    if (back.size > 0) result = runLayered(graph, sized, edges.filter((e) => !back.has(e.id)), labels, direction, groupIds, options)
     for (const [id, b] of result.nodes) centres.set(id, { x: b.x, y: b.y })
     for (const [id, r] of result.edges) {
       waypoints.set(id, r.points)
@@ -180,8 +192,6 @@ export function layoutGraph(graph: Graph, options: LayoutOptions = {}): GraphLay
     nodes.set(n.id, { ...s, x: c.x, y: c.y })
   }
 
-  const routed = routeEdges(graph, nodes, { direction, routing, registry, waypoints, labelAt, labels })
-
   // Group frames: from the layout, or around the members.
   const groups = new Map<string, GroupGeometry>()
   for (const g of graph.groups ?? []) {
@@ -189,6 +199,8 @@ export function layoutGraph(graph: Graph, options: LayoutOptions = {}): GraphLay
     const box = fromLayout ?? frameAround(g.id, graph, nodes)
     if (box) groups.set(g.id, { id: g.id, label: g.label, ...box })
   }
+
+  const routed = routeEdges(graph, nodes, { direction, routing, registry, waypoints, labelAt, labels, groups })
 
   return { direction, routing, nodes, edges: routed, groups, waypoints, bounds: boundsOf(nodes, routed, groups) }
 }
@@ -257,6 +269,8 @@ interface RouteContext {
   waypoints: Map<string, Point[]>
   labelAt: Map<string, Point>
   labels: Map<string, { width: number; height: number; lines: string[] } | undefined>
+  /** Group frames: back-edge channels keep their drops out of foreign groups. */
+  groups?: ReadonlyMap<string, NodeBox>
 }
 
 /**
@@ -271,8 +285,28 @@ export function routeEdges(graph: Graph, nodes: Map<string, NodeGeometry | NodeB
     ends: [{ node: FlowNode; box: NodeBox; side: PortSide; offset?: number; fixed: boolean; toward: Point }, { node: FlowNode; box: NodeBox; side: PortSide; offset?: number; fixed: boolean; toward: Point }]
     wps: Point[]
   }
+  const parentOf = new Map((graph.groups ?? []).map((g) => [g.id, g.parent]))
+  const groupsOf = (id: string): Set<string> => {
+    const set = new Set<string>()
+    let g = byId.get(id)?.group
+    while (g !== undefined && !set.has(g)) {
+      set.add(g)
+      g = parentOf.get(g)
+    }
+    return set
+  }
+  // Obstacles for orthogonal routes: other nodes, and groups holding neither end.
+  const clearOf = (e: FlowEdge) => {
+    const own = new Set([...groupsOf(e.from), ...groupsOf(e.to)])
+    const boxes: NodeBox[] = []
+    for (const [id, b] of nodes) if (id !== e.from && id !== e.to) boxes.push(b)
+    for (const [gid, g] of ctx.groups ?? []) if (!own.has(gid)) boxes.push(g)
+    return (u: Point, v: Point) => !boxes.some((b) => segmentHitsBox(u, v, b, 6))
+  }
   const pending: Pending[] = []
+  const backs: BackEdgeInput[] = []
   const out = new Map<string, EdgeGeometry>()
+
   for (const e of graph.edges) {
     const a = byId.get(e.from)
     const b = byId.get(e.to)
@@ -282,6 +316,21 @@ export function routeEdges(graph: Graph, nodes: Map<string, NodeGeometry | NodeB
     if (e.from === e.to) {
       if (only && !only.has(e.id)) continue
       out.set(e.id, selfLoop(e, ab, ctx))
+      continue
+    }
+    if (channelled(e, graph) && isBehind(ab, bb, ctx.direction)) {
+      backs.push({
+        id: e.id,
+        from: e.from,
+        to: e.to,
+        source: ab,
+        target: bb,
+        sourceGroups: groupsOf(e.from),
+        targetGroups: groupsOf(e.to),
+        label: ctx.labels.get(e.id),
+        spreadSource: spreadable(typeOf(ctx.registry, a.type).shape),
+        spreadTarget: spreadable(typeOf(ctx.registry, b.type).shape),
+      })
       continue
     }
     const wps = ctx.waypoints.get(e.id) ?? []
@@ -327,16 +376,21 @@ export function routeEdges(graph: Graph, nodes: Map<string, NodeGeometry | NodeB
   for (const p of pending) {
     if (only && !only.has(p.edge.id)) continue
     const [s, t] = p.ends
-    // Splines through layout bends leave the outline towards the first bend;
-    // everything else attaches to a side (spread when several share it).
-    const clipped = ctx.routing === 'spline' && p.wps.length > 0
-    const from: Anchor = { point: clipped && !s.fixed ? clipToShape(s.box, typeOf(ctx.registry, s.node.type).shape, s.toward) : anchorPoint(s.box, s.side, s.offset ?? 0.5, ctx, s.node), side: s.side }
-    const to: Anchor = { point: clipped && !t.fixed ? clipToShape(t.box, typeOf(ctx.registry, t.node.type).shape, t.toward) : anchorPoint(t.box, t.side, t.offset ?? 0.5, ctx, t.node), side: t.side }
-    const r = route({ from, to, waypoints: p.wps, routing: ctx.routing })
+    // Every edge attaches to a side (spread when several share it).
+    const from: Anchor = { point: anchorPoint(s.box, s.side, s.offset ?? 0.5, ctx, s.node), side: s.side }
+    const to: Anchor = { point: anchorPoint(t.box, t.side, t.offset ?? 0.5, ctx, t.node), side: t.side }
+    // Through the layout's bends, both styles follow an obstacle-free
+    // corridor; `smooth` rounds its corners generously.
+    const r =
+      p.wps.length > 0
+        ? orthogonalThrough(from, to, p.wps, ctx.direction === 'LR', clearOf(p.edge), ctx.routing === 'spline' ? 28 : 10, ctx.labelAt.get(p.edge.id))
+        : route({ from, to, waypoints: p.wps, routing: ctx.routing })
     const geo: EdgeGeometry = { id: p.edge.id, d: r.d, points: r.points, from, to }
     const l = ctx.labels.get(p.edge.id)
     if (l) {
       let at = ctx.labelAt.get(p.edge.id)
+      // The label slot's place along the flow, on the lane the route took.
+      if (at) at = pointAtMain(r.points, ctx.direction === 'LR' ? at.x : at.y, ctx.direction === 'LR') ?? midpoint(r.points)
       if (!at) {
         at = ctx.routing === 'spline' && p.wps.length === 0 && r.points.length === 4 ? bezierPoint(r.points[0]!, r.points[1]!, r.points[2]!, r.points[3]!, 0.5) : midpoint(r.points)
       }
@@ -344,7 +398,43 @@ export function routeEdges(graph: Graph, nodes: Map<string, NodeGeometry | NodeB
     }
     out.set(p.edge.id, geo)
   }
+
+  const channels = routeChannels(backs, {
+    direction: ctx.direction,
+    nodes,
+    groups: ctx.groups ?? new Map(),
+    // A label under a start/end circle (LR) sticks out below the box.
+    extraBelow: (id) => {
+      const n = byId.get(id)
+      const def = n && typeOf(ctx.registry, n.type)
+      return ctx.direction === 'LR' && def?.labelOutside && n?.label ? 2 * LINE + 6 : 0
+    },
+  })
+  for (const b of backs) {
+    if (only && !only.has(b.id)) continue
+    const r = channels.get(b.id)!
+    const geo: EdgeGeometry = { id: b.id, d: r.d, points: r.points, from: r.from, to: r.to }
+    const l = ctx.labels.get(b.id)
+    if (l && r.label) geo.label = { x: r.label.x, y: r.label.y, width: l.width, height: l.height, lines: l.lines }
+    out.set(b.id, geo)
+  }
+
+  // Labels off nodes and off each other; forward labels (the layout reserved
+  // room for them) keep their place first. Skipped for a drag preview.
+  if (!only) {
+    const items = [...out.values()]
+      .filter((g) => g.label)
+      .sort((a, b) => Number(backs.some((x) => x.id === a.id)) - Number(backs.some((x) => x.id === b.id)))
+      .map((g) => ({ label: g.label!, points: g.points }))
+    placeLabels(items, nodes.values())
+  }
   return out
+}
+
+/** Edges that go through the back-edge channel when they run against the flow. */
+function channelled(e: FlowEdge, graph: Graph): boolean {
+  void graph
+  return e.from !== e.to && e.kind !== 'association' && !e.fromPort && !e.toPort
 }
 
 function anchorPoint(box: NodeBox, side: PortSide, offset: number, ctx: RouteContext, node: FlowNode): Point {
@@ -426,7 +516,11 @@ export function boundsOf(nodes: Map<string, NodeBox>, edges: Map<string, EdgeGeo
   for (const b of nodes.values()) {
     box(b, b.width <= 40 ? outsideLabels : 0)
     // A label to the right of a small circle (TB).
-    if (b.width <= 40 && 'lines' in b && (b as NodeGeometry).lines.length) box({ ...b, x: b.x + 60, width: b.width + 120 })
+    // A label under (LR) or right of (TB) a small circle.
+    if (b.width <= 40 && 'lines' in b && (b as NodeGeometry).lines.length) {
+      box({ ...b, width: 110 })
+      box({ ...b, x: b.x + 60, width: b.width + 120 })
+    }
   }
   for (const g of groups.values()) box(g)
   for (const e of edges.values()) {

@@ -70,7 +70,7 @@ function onChange(e: ChangeEvent) {
 | `palette` | `string[]` | 全部类型 | 元素面板提供哪些类型及其顺序 |
 | `readonly` | `boolean` | `false` | 仅浏览 |
 | `snapGrid` | `number` | `20` | `0` 关闭吸附 |
-| `direction`、`routing` | | | 同 FlowView |
+| `direction`、`edgeStyle` | | | 同 FlowView |
 | `nodeRenderers`、`nodeIcons` | | | 同 FlowView |
 | `mermaid` | `(source) => Graph` | — | 启用“导入 Mermaid”：传入 `fromMermaid` |
 | `locale`、`labels` | | `'en'` | |

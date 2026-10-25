@@ -18,8 +18,11 @@ core has no runtime dependencies; the Vue components are built on
 - `validateGraph`: errors for duplicate ids and broken references or ports,
   warnings for missing start/end, unreachable steps, dead ends and empty labels.
 - `layoutGraph`: a deterministic layered layout (LR/TB) that keeps fixed
-  positions and places the rest, with spline or orthogonal routing, ports,
-  spread anchors, self loops and group frames.
+  positions and places the rest; orthogonal routing by default (or smooth
+  curves over the same corridors) that never passes through other nodes or
+  foreign groups; back edges in lanes of a channel beside the graph; edge
+  labels kept off nodes and off each other; ports, spread anchors, self
+  loops and group frames.
 - Monitoring: the snapshot format, `reduceMonitor` / `mergeSnapshot`,
   `isStale`, `pathEdges`, `statusSummary`; `createPoller` with visibility
   pause, exponential backoff and cancellation.
@@ -36,7 +39,9 @@ core has no runtime dependencies; the Vue components are built on
 
 **Vue (`@dskripchenko/flow/vue`)**
 
-- `FlowView`: pan, zoom, pinch, fit, minimap and a readable first view;
+- `FlowView`: pan, zoom, pinch, fit, minimap; opens at 100 % on the current
+  step (or whole when it fits at 85 % or more), keeping nodes clear of the
+  overlays; `edgeStyle: 'orthogonal' | 'smooth'`;
   monitoring from `state` or `poll` with the active step, the instance path,
   counters, error badges, a status line with last update, staleness and a
   summary; enable/disable switches with optimistic update and rollback;

@@ -83,7 +83,7 @@ function onChange(e: ChangeEvent) {
 | `palette` | `string[]` | все типы | какие типы предлагает панель элементов и в каком порядке |
 | `readonly` | `boolean` | `false` | только просмотр |
 | `snapGrid` | `number` | `20` | `0` выключает привязку |
-| `direction`, `routing` | | | как во FlowView |
+| `direction`, `edgeStyle` | | | как во FlowView |
 | `nodeRenderers`, `nodeIcons` | | | как во FlowView |
 | `mermaid` | `(source) => Graph` | — | включает «Импорт Mermaid»: передайте `fromMermaid` |
 | `locale`, `labels` | | `'en'` | |

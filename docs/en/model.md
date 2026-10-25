@@ -157,7 +157,7 @@ Errors come first. `issuesByElement(issues)` groups them by element id.
 ```ts
 import { layoutGraph } from '@dskripchenko/flow'
 
-const layout = layoutGraph(graph, { direction: 'LR', routing: 'spline', registry })
+const layout = layoutGraph(graph, { direction: 'LR', routing: 'orthogonal', registry })
 layout.nodes.get('new')      // { x, y, width, height, lines, descriptionLines }
 layout.edges.get('e2')       // { d (SVG path), points, from, to, label? }
 layout.groups, layout.bounds
@@ -168,8 +168,20 @@ layout.groups, layout.bounds
 - When some nodes have positions, they stay; the others keep their place
   relative to the layout, shifted to line up with the fixed ones and moved off
   any overlap.
-- `routing: 'spline'` draws smooth curves (through the layout's bends);
-  `'orthogonal'` draws right-angle segments with rounded corners.
+- `routing: 'orthogonal'` (the default) draws right-angle segments with
+  rounded corners; `'spline'` the same corridors with smooth, wide curves
+  (direct curves between ports when there is no layout to follow). Routes
+  keep one lane while the way is clear and change lanes only between ranks,
+  so they never pass through other nodes or through groups that hold
+  neither end.
+- **Back edges** — transitions against the flow (retry, resend, give up…) —
+  run through a channel beside the graph (below or above in LR, right or
+  left in TB, whichever needs no crossing): out of the source, along a lane
+  of their own (parallel back edges never share one), back into the target.
+  The forward layout is computed without them, so they leave no gaps.
+- Edge labels stay in the slot the layout reserved (or in the middle of
+  their lane); a label that would cover a node or another label slides
+  along its own route.
 - Text is measured with a glyph table (deterministic in Node); the Vue
   components pass a canvas measurer in the browser. Pass `measure` to use your own.
 - `MAX_NODES` (500) and `MAX_EDGES` (2000) bound the layout; above them it throws.

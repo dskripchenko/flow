@@ -152,7 +152,7 @@ const issues = validateGraph(graph, { registry })
 ```ts
 import { layoutGraph } from '@dskripchenko/flow'
 
-const layout = layoutGraph(graph, { direction: 'LR', routing: 'spline', registry })
+const layout = layoutGraph(graph, { direction: 'LR', routing: 'orthogonal', registry })
 layout.nodes.get('new')      // { x, y, width, height, lines, descriptionLines }
 layout.edges.get('e2')       // { d (SVG path), points, from, to, label? }
 layout.groups, layout.bounds
@@ -161,8 +161,16 @@ layout.groups, layout.bounds
 - 分层（Sugiyama）布局负责放置没有位置的节点；它能处理环、分组和标签，结果是确定的。
 - 当部分节点有位置时，这些节点保持不动；其余节点保持在布局中的相对位置，平移后与固定
   节点对齐，并避开重叠。
-- `routing: 'spline'` 绘制平滑曲线（经过布局的折点）；`'orthogonal'` 绘制带圆角的
-  直角线段。
+- `routing: 'orthogonal'`（默认）绘制带圆角的直角线段；`'spline'` 沿相同的
+  通道绘制平滑、宽弧的曲线（没有布局可循时为端口之间的直接曲线）。路线在路径
+  畅通时保持同一车道，只在层级之间换道，因此不会穿过其他节点，也不会穿过两端
+  都不在其中的分组。
+- **回边**——逆着流程的转移（重试、重发、放弃……）——走图旁边的通道（LR 时在
+  下方或上方，TB 时在右侧或左侧，选择无需穿越的一侧）：从源节点出来，沿各自的
+  车道（并行的回边不会共用车道），回到目标节点。正向布局在计算时不包含它们，
+  因此不会留下空隙。
+- 边标签放在布局预留的位置（或其车道的中间）；会遮挡节点或其他标签的标签会沿
+  自身路线滑动。
 - 文本用字形表测量（在 Node 中结果确定）；在浏览器中 Vue 组件传入基于 canvas 的测量器。
   传入 `measure` 可使用自己的测量器。
 - `MAX_NODES`（500）和 `MAX_EDGES`（2000）限制布局规模；超出时抛出异常。

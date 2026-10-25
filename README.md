@@ -36,8 +36,9 @@ const poll = {
 - Validation: duplicate ids, broken references and ports (errors); missing
   start/end, unreachable steps, dead ends (warnings). Cycles are fine.
 - Layout: a layered (Sugiyama) layout, left-to-right or top-to-bottom,
-  deterministic, around nodes you have placed yourself; smooth or orthogonal
-  edge routing with ports.
+  deterministic, around nodes you have placed yourself; orthogonal (or
+  smooth) edges that never cut through other nodes or groups, with back
+  edges (retries, resends) in their own lanes beside the graph.
 - Monitoring: a snapshot format, a pure reducer, stale detection, and a poller
   that pauses in hidden tabs, backs off on errors and cancels requests.
 - Editing: undoable commands, history with merging, copy/paste, align,

@@ -75,7 +75,6 @@ import {
   type Issue,
   type NodeTypeRegistry,
   type Point,
-  type Routing,
 } from '../index'
 import FlowCanvas, { type ConnectPayload, type ContextPayload, type ReconnectPayload } from './FlowCanvas.vue'
 import FlowContextMenu, { type MenuEntry } from './editor/FlowContextMenu.vue'
@@ -109,7 +108,8 @@ const props = withDefaults(
     snapGrid?: number
     /** Layout direction; `auto` (the default without `meta.direction`) follows the canvas shape. */
     direction?: 'TB' | 'LR' | 'auto'
-    routing?: Routing
+    /** `orthogonal` (right angles, the default) or `smooth` (curves). */
+    edgeStyle?: 'orthogonal' | 'smooth'
     nodeRenderers?: Record<string, Component>
     nodeIcons?: Record<string, Component>
     locale?: 'en' | 'ru' | string
@@ -127,7 +127,7 @@ const props = withDefaults(
     readonly: false,
     snapGrid: 20,
     direction: undefined,
-    routing: 'spline',
+    edgeStyle: 'orthogonal',
     nodeRenderers: () => ({}),
     nodeIcons: () => ({}),
     locale: 'en',
@@ -371,7 +371,7 @@ function distribute(axis: 'horizontal' | 'vertical'): void {
 }
 function autoLayout(): void {
   const g = level.value
-  const fresh = layoutGraph(g, { registry: props.registry, direction: canvas.value?.layout.direction ?? 'LR', routing: props.routing, ignorePositions: true })
+  const fresh = layoutGraph(g, { registry: props.registry, direction: canvas.value?.layout.direction ?? 'LR', routing: props.edgeStyle === 'smooth' ? 'spline' : 'orthogonal', ignorePositions: true })
   if (run(layoutCommand(fresh))) setTimeout(() => canvas.value?.fit(true), 30)
 }
 function toggleEnabled(): void {
@@ -842,7 +842,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
             :labels="L"
             :registry="registry"
             :direction="direction"
-            :routing="routing"
+            :edge-style="edgeStyle"
             :selection="selection"
             :issues="issueMap"
             :editable="!readonly"

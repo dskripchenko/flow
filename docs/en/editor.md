@@ -77,7 +77,7 @@ Shortcuts are ignored while typing in a field.
 | `palette` | `string[]` | all types | which types the elements panel offers, in order |
 | `readonly` | `boolean` | `false` | browse only |
 | `snapGrid` | `number` | `20` | `0` turns snapping off |
-| `direction`, `routing` | | | as in FlowView |
+| `direction`, `edgeStyle` | | | as in FlowView |
 | `nodeRenderers`, `nodeIcons` | | | as in FlowView |
 | `mermaid` | `(source) => Graph` | — | enables "Import Mermaid": pass `fromMermaid` |
 | `locale`, `labels` | | `'en'` | |

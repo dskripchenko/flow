@@ -38,13 +38,13 @@ export interface NodeTypeDef {
 export type NodeTypeRegistry = ReadonlyMap<string, NodeTypeDef>
 
 export const BUILTIN_TYPES: Readonly<Record<string, NodeTypeDef>> = Object.freeze({
-  start: { title: 'Start', shape: 'circle', size: { width: 36, height: 36 }, icon: 'play', labelOutside: true, noIncoming: true },
-  end: { title: 'End', shape: 'ring', size: { width: 36, height: 36 }, icon: 'stop', labelOutside: true, noOutgoing: true },
-  state: { title: 'State', shape: 'rounded', minWidth: 132, maxWidth: 220, height: 44 },
-  task: { title: 'Task', shape: 'rect', minWidth: 156, maxWidth: 240, height: 56, icon: 'task' },
-  decision: { title: 'Decision', shape: 'diamond', minWidth: 104, maxWidth: 180, height: 72, icon: 'decision' },
-  subprocess: { title: 'Sub-process', shape: 'rect', minWidth: 172, maxWidth: 240, height: 60, icon: 'subprocess', drillable: true },
-  note: { title: 'Note', shape: 'note', minWidth: 120, maxWidth: 220, height: 44, annotation: true },
+  start: { title: 'Start', shape: 'circle', size: { width: 40, height: 40 }, icon: 'play', labelOutside: true, noIncoming: true },
+  end: { title: 'End', shape: 'ring', size: { width: 40, height: 40 }, icon: 'stop', labelOutside: true, noOutgoing: true },
+  state: { title: 'State', shape: 'rounded', minWidth: 160, maxWidth: 240, height: 44 },
+  task: { title: 'Task', shape: 'rect', minWidth: 176, maxWidth: 260, height: 60, icon: 'task' },
+  decision: { title: 'Decision', shape: 'diamond', minWidth: 124, maxWidth: 200, height: 80, icon: 'decision' },
+  subprocess: { title: 'Sub-process', shape: 'rect', minWidth: 192, maxWidth: 260, height: 64, icon: 'subprocess', drillable: true },
+  note: { title: 'Note', shape: 'note', minWidth: 140, maxWidth: 240, height: 48, annotation: true },
 })
 
 /** A registry with the built-in types plus `custom` (which may override them). */

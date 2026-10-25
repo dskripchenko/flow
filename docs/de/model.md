@@ -159,7 +159,7 @@ Fehler kommen zuerst. `issuesByElement(issues)` gruppiert sie nach Element-ID.
 ```ts
 import { layoutGraph } from '@dskripchenko/flow'
 
-const layout = layoutGraph(graph, { direction: 'LR', routing: 'spline', registry })
+const layout = layoutGraph(graph, { direction: 'LR', routing: 'orthogonal', registry })
 layout.nodes.get('new')      // { x, y, width, height, lines, descriptionLines }
 layout.edges.get('e2')       // { d (SVG-Pfad), points, from, to, label? }
 layout.groups, layout.bounds
@@ -170,8 +170,21 @@ layout.groups, layout.bounds
 - Haben einige Knoten Positionen, bleiben diese erhalten; die übrigen behalten
   ihre Lage relativ zum Layout, werden an den fixierten ausgerichtet und aus
   jeder Überlappung herausgeschoben.
-- `routing: 'spline'` zeichnet glatte Kurven (durch die Knickpunkte des
-  Layouts); `'orthogonal'` zeichnet rechtwinklige Segmente mit abgerundeten Ecken.
+- `routing: 'orthogonal'` (Standard) zeichnet rechtwinklige Segmente mit
+  abgerundeten Ecken; `'spline'` dieselben Korridore mit weichen, weiten
+  Kurven (direkte Kurven zwischen Ports, wenn es kein Layout gibt). Routen
+  behalten ihre Spur, solange der Weg frei ist, und wechseln sie nur zwischen
+  Rängen – sie laufen nie durch fremde Knoten oder durch Gruppen, die keines
+  der Enden enthalten.
+- **Rückkanten** – Übergänge gegen den Fluss (Retry, erneut senden,
+  aufgeben …) – laufen durch einen Kanal neben dem Graphen (unten oder oben
+  bei LR, rechts oder links bei TB, je nachdem, wo nichts gekreuzt wird):
+  aus der Quelle, über eine eigene Spur (parallele Rückkanten teilen sich
+  keine), zurück ins Ziel. Das Vorwärts-Layout wird ohne sie berechnet, sie
+  hinterlassen also keine Lücken.
+- Kantenbeschriftungen bleiben am vom Layout reservierten Platz (oder in der
+  Mitte ihrer Spur); eine Beschriftung, die einen Knoten oder eine andere
+  Beschriftung verdecken würde, rutscht entlang ihrer eigenen Route.
 - Text wird mit einer Glyphentabelle gemessen (deterministisch in Node); die
   Vue-Komponenten übergeben im Browser einen Canvas-Messer. Übergeben Sie
   `measure`, um einen eigenen zu verwenden.
