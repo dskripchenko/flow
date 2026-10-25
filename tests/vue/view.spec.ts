@@ -10,6 +10,11 @@ afterEach(() => {
   wrappers.splice(0).forEach((w) => w.unmount())
   document.body.innerHTML = ''
 })
+/** A tap: press and release without moving (the viewer selects on release). */
+async function tap(w: ReturnType<typeof view>, selector: string) {
+  await w.find(selector).trigger('pointerdown')
+  await w.find('.fl-canvas').trigger('pointerup')
+}
 function view(props: Record<string, unknown> = {}) {
   const w = mount(FlowView, { props: { graph: orderProcess, toastProvider: false, ...props }, attachTo: document.body })
   wrappers.push(w)
@@ -59,7 +64,7 @@ describe('FlowView', () => {
 
   it('selects a node on click and opens the details drawer', async () => {
     const w = view({ state: snapshotAt(6) })
-    await w.find('[data-node-id="delivery-failed"]').trigger('pointerdown')
+    await tap(w, '[data-node-id="delivery-failed"]')
     await flushPromises()
     const sel = w.emitted('select')!.at(-1)![0] as { id: string; kind: string }
     expect(sel).toMatchObject({ kind: 'node', id: 'delivery-failed' })
@@ -80,7 +85,7 @@ describe('FlowView', () => {
     let reject: (e: Error) => void = () => {}
     const onToggle = vi.fn((c: ToggleChange) => new Promise((_, r) => { reject = r; void c }))
     const w = view({ toggleable: true, onToggle })
-    await w.find('[data-node-id="cancelled"]').trigger('pointerdown')
+    await tap(w, '[data-node-id="cancelled"]')
     await flushPromises()
     const sw = document.body.querySelector<HTMLInputElement>('.fl-details__toggle input')!
     expect(sw.checked).toBe(true)

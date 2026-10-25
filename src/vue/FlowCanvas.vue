@@ -14,6 +14,7 @@ import {
   boundsOf,
   defaultRegistry,
   isEnabled,
+  fitView,
   isVisible,
   layoutGraph,
   nearestInDirection,
@@ -37,6 +38,7 @@ import {
   type PortSide,
   type Routing,
   type TextMeasurer,
+  type Viewport,
   type ZoomLimits,
 } from '../index'
 import FlowNodeShape from './FlowNodeShape.vue'
@@ -83,7 +85,8 @@ const props = withDefaults(
     graph: Graph
     labels: FlowLabels
     registry?: NodeTypeRegistry
-    direction?: 'TB' | 'LR'
+    /** `auto` (the default without `meta.direction`) picks LR for a landscape canvas and TB for a portrait one. */
+    direction?: 'TB' | 'LR' | 'auto'
     routing?: Routing
     monitor?: MonitorState
     /** Room beside edge labels for counters (keeps layout stable once counters arrive). */
@@ -171,13 +174,16 @@ const vp = useViewport(root, (): ZoomLimits => ({ min: props.minZoom, max: props
 // ---------------------------------------------------------------------------
 
 const measure = shallowRef<TextMeasurer>(approximateMeasurer)
+/** Decided once the canvas has a size: portrait canvases flow top to bottom. */
+const autoDirection = ref<'TB' | 'LR'>('LR')
+const direction = computed<'TB' | 'LR'>(() => (props.direction && props.direction !== 'auto' ? props.direction : (props.graph.meta?.direction ?? autoDirection.value)))
 const layoutError = ref<string | null>(null)
 const layout = computed<GraphLayout>(() => {
   try {
     layoutError.value = null
     return layoutGraph(props.graph, {
       registry: props.registry,
-      direction: props.direction,
+      direction: direction.value,
       routing: props.routing,
       measure: measure.value,
       edgeLabelExtra: props.reserveCounters ? 30 : 0,
@@ -367,7 +373,7 @@ function onFocusOut(id: string): void {
 // ---------------------------------------------------------------------------
 
 type Gesture =
-  | { kind: 'pan'; startX: number; startY: number; vx: number; vy: number; moved: boolean }
+  | { kind: 'pan'; startX: number; startY: number; vx: number; vy: number; moved: boolean; tap?: { id: string; additive: boolean } }
   | { kind: 'band'; start: Point; end: Point; additive: boolean; base: string[] }
   | { kind: 'drag'; id: string; ids: Set<string>; start: Point; moved: boolean; additive: boolean }
   | { kind: 'connect'; from: string; fromPort?: string; side: PortSide; start: Point; pointer: Point; target: { node: string; port?: string; point: Point } | null; reconnect?: { id: string; end: 'from' | 'to'; fixed: string; fixedPort?: string } }
@@ -379,6 +385,9 @@ let spaceDown = false
 let longPress: ReturnType<typeof setTimeout> | undefined
 let moveFrame = 0
 let lastMove: PointerEvent | null = null
+let tapTimer: ReturnType<typeof setTimeout> | undefined
+/** A pointer to capture once the gesture really moves. */
+let deferredCapture: number | null = null
 
 const band = computed(() => {
   const g = gesture.value
@@ -464,6 +473,15 @@ function onPointerDown(e: PointerEvent): void {
     e.preventDefault()
     return
   }
+  // The viewer selects on a tap (released without moving): a pan or a pinch
+  // that starts over a node must not open its details.
+  if (!panAnyway && !props.editable && (hit?.kind === 'node' || hit?.kind === 'edge')) {
+    const v = vp.current()
+    gesture.value = { kind: 'pan', startX: e.clientX, startY: e.clientY, vx: v.x, vy: v.y, moved: false, tap: { id: hit.id, additive: e.shiftKey || e.metaKey || e.ctrlKey } }
+    // Captured once it moves: capturing now would retarget click/dblclick to the canvas.
+    deferredCapture = e.pointerId
+    return
+  }
   if (!panAnyway && hit?.kind === 'node') {
     const additive = e.shiftKey || e.metaKey || e.ctrlKey
     const alreadySelected = selected.value.has(hit.id)
@@ -475,7 +493,7 @@ function onPointerDown(e: PointerEvent): void {
         if (n && props.isLocked?.(n)) ids.delete(id)
       }
       gesture.value = { kind: 'drag', id: hit.id, ids, start: local, moved: false, additive }
-      capture(e)
+      deferredCapture = e.pointerId
     }
     return
   }
@@ -511,9 +529,23 @@ function onPointerMove(e: PointerEvent): void {
     vp.panBy(mid.x - pinch.mid.x, mid.y - pinch.mid.y)
     if (pinch.dist > 0) vp.zoomBy(dist / pinch.dist, local)
     pinch = { dist, mid }
+    userMoved = true
     return
   }
   if (!gesture.value) return
+  if (deferredCapture === e.pointerId) {
+    const g = gesture.value
+    const start = g.kind === 'pan' ? { x: g.startX, y: g.startY } : null
+    const far = start ? Math.hypot(e.clientX - start.x, e.clientY - start.y) > 3 : true
+    if (far) {
+      deferredCapture = null
+      try {
+        root.value?.setPointerCapture(e.pointerId)
+      } catch {
+        // The pointer is gone.
+      }
+    }
+  }
   lastMove = e
   if (moveFrame) return
   const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0) as unknown as number
@@ -532,6 +564,7 @@ function applyMove(e: PointerEvent): void {
     const dy = e.clientY - g.startY
     if (Math.hypot(dx, dy) > 3) {
       g.moved = true
+      userMoved = true
       clearTimeout(longPress)
     }
     vp.set({ ...vp.current(), x: g.vx + dx, y: g.vy + dy })
@@ -588,6 +621,7 @@ function portKindBlocks(n: FlowNode, portId: string, incoming: boolean): boolean
 
 function onPointerUp(e: PointerEvent): void {
   pointers.delete(e.pointerId)
+  deferredCapture = null
   clearTimeout(longPress)
   if (pinch) {
     if (pointers.size < 2) pinch = null
@@ -599,7 +633,14 @@ function onPointerUp(e: PointerEvent): void {
   gesture.value = null
   if (!g) return
   if (g.kind === 'pan') {
-    if (!g.moved) selectElement(null)
+    if (!g.moved) {
+      const tap = g.tap
+      const n = tap ? nodesById.value.get(tap.id) : undefined
+      clearTimeout(tapTimer)
+      // A drillable node waits a moment: a second click enters it instead.
+      if (n && isDrillable(n)) tapTimer = setTimeout(() => selectElement(tap!.id, tap!.additive), 230)
+      else selectElement(tap?.id ?? null, tap?.additive)
+    }
   } else if (g.kind === 'band') {
     const b = band.value ?? { x: g.start.x, y: g.start.y, width: Math.abs(g.end.x - g.start.x), height: Math.abs(g.end.y - g.start.y) }
     const x0 = Math.min(g.start.x, g.end.x)
@@ -650,6 +691,7 @@ function cancelGesture(): void {
 function onWheel(e: WheelEvent): void {
   if (props.graph.nodes.length === 0) return
   e.preventDefault()
+  userMoved = true
   const at = vp.clientToLocal(e.clientX, e.clientY)
   if (e.ctrlKey || e.metaKey || props.wheel === 'zoom') {
     const scale = e.ctrlKey ? 0.01 : 0.0015
@@ -673,6 +715,7 @@ function onDblClick(e: MouseEvent): void {
   const hit = hitElement(e.target)
   if (hit?.kind === 'node') {
     const n = nodesById.value.get(hit.id)
+    clearTimeout(tapTimer)
     if (n && !props.editable && isDrillable(n)) emit('enter', n.id)
     else emit('activate', { kind: 'node', id: hit.id })
     return
@@ -827,6 +870,71 @@ function fit(smooth = false): void {
   vp.fit(b, smooth)
 }
 
+/** Below this zoom labels are hard to read; the first view then shows the start (or the current step) instead. */
+const READABLE = 0.62
+/** The user has panned or zoomed: automatic moves stop. */
+let userMoved = false
+
+/** Where a reader starts: the current step, else a start node, else the first node along the flow. */
+function focusNode(): { box: NodeGeometry; current: boolean } | undefined {
+  const boxes = nodeBoxes.value
+  for (const id of props.monitor?.current ?? []) {
+    const b = boxes.get(id)
+    if (b) return { box: b, current: true }
+  }
+  const start = props.graph.nodes.find((n) => typeOf(props.registry, n.type).noIncoming && boxes.has(n.id))
+  if (start) return { box: boxes.get(start.id)!, current: false }
+  const lr = layout.value.direction === 'LR'
+  let best: NodeGeometry | undefined
+  for (const b of boxes.values()) if (!best || (lr ? b.x < best.x : b.y < best.y)) best = b
+  return best ? { box: best, current: false } : undefined
+}
+
+/**
+ * A view with `f` in the middle, shifted so the flow's leading edge sits at
+ * the screen edge (no empty half-screen before the start) while `f` stays in view.
+ */
+function viewOn(f: NodeBox, k: number): Viewport {
+  const { width, height } = vp.size.value
+  const b = layout.value.bounds
+  let x = width / 2 - f.x * k
+  let y = height / 2 - f.y * k
+  if (layout.value.direction === 'LR') {
+    const lead = 56 - b.x * k
+    if (x > lead && (f.x + f.width / 2) * k + lead < width - 48) x = lead
+  } else {
+    const lead = 76 - b.y * k
+    if (y > lead && (f.y + f.height / 2) * k + lead < height - 72) y = lead
+  }
+  return { k, x, y }
+}
+
+/** The first view of a graph: whole when it is readable that way, else from its start at a readable zoom. */
+function autoFit(): void {
+  const b = layout.value.bounds
+  const { width, height } = vp.size.value
+  if ((b.width === 0 && b.height === 0) || !width || !height) return
+  const whole = fitView(b, width, height, Math.min(48, width / 8), { min: props.minZoom, max: props.maxZoom })
+  if (whole.k >= READABLE) {
+    vp.set(whole)
+    return
+  }
+  const focus = focusNode()
+  if (!focus) {
+    vp.set(whole)
+    return
+  }
+  const k = Math.min(READABLE, props.maxZoom)
+  const f = focus.box
+  if (focus.current) {
+    vp.set(viewOn(f, k))
+  } else if (layout.value.direction === 'LR') {
+    vp.set({ k, x: 56 - (f.x - f.width / 2) * k, y: height / 2 - f.y * k })
+  } else {
+    vp.set({ k, x: width / 2 - f.x * k, y: 72 - (f.y - f.height / 2) * k })
+  }
+}
+
 let ro: ResizeObserver | undefined
 let fitted = false
 onMounted(() => {
@@ -837,9 +945,13 @@ onMounted(() => {
     const r = el.getBoundingClientRect()
     const first = vp.size.value.width === 0
     vp.size.value = { width: r.width, height: r.height }
+    if (first && r.width > 0) autoDirection.value = r.height > r.width * 1.1 ? 'TB' : 'LR'
     if (first || !fitted) {
-      fit()
-      fitted = vp.size.value.width > 0 && props.graph.nodes.length > 0
+      // After the measurer and the direction have re-laid the graph.
+      void nextTick(() => {
+        autoFit()
+        fitted = vp.size.value.width > 0 && props.graph.nodes.length > 0
+      })
     }
   }
   update()
@@ -859,6 +971,7 @@ onBeforeUnmount(() => {
   vp.dispose()
   clearTimeout(hoverTimer)
   clearTimeout(longPress)
+  clearTimeout(tapTimer)
   window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('blur', onWindowBlur)
 })
@@ -866,8 +979,9 @@ onBeforeUnmount(() => {
 watch(
   () => props.fitKey,
   async () => {
+    userMoved = false
     await nextTick()
-    fit()
+    autoFit()
     fitted = props.graph.nodes.length > 0
   },
 )
@@ -876,9 +990,18 @@ watch(
   async (has) => {
     if (has && !fitted) {
       await nextTick()
-      fit()
+      autoFit()
       fitted = vp.size.value.width > 0
     }
+  },
+)
+// The first time an instance shows up, bring it into view (unless the user has moved the view).
+watch(
+  () => props.monitor?.current?.[0],
+  (id, before) => {
+    if (!id || userMoved || !fitted) return
+    const b = nodeBoxes.value.get(id)
+    if (b && (!before || !isVisible(vp.current(), b, vp.size.value.width, vp.size.value.height, 32))) vp.set(viewOn(b, vp.current().k), true)
   },
 )
 
@@ -892,6 +1015,14 @@ const gridSize = computed(() => {
   while (s < 10) s *= 2
   return s
 })
+function userZoomReset(): void {
+  userMoved = true
+  vp.zoomTo(1)
+}
+function userZoom(f: number): void {
+  userMoved = true
+  vp.zoomBy(f, undefined, true)
+}
 const zoomPercent = computed(() => Math.round(vp.view.value.k * 100))
 
 defineExpose({
@@ -1314,9 +1445,9 @@ function iconFor(n: FlowNode): Component | undefined {
       :labels="labels"
       :zoom="zoomPercent"
       :minimap="minimap"
-      @zoom-in="vp.zoomBy(1.2, undefined, true)"
-      @zoom-out="vp.zoomBy(1 / 1.2, undefined, true)"
-      @zoom-reset="vp.zoomTo(1)"
+      @zoom-in="userZoom(1.2)"
+      @zoom-out="userZoom(1 / 1.2)"
+      @zoom-reset="userZoomReset"
       @fit="fit(true)"
       @update:minimap="(v: boolean) => emit('update:minimap', v)"
     >

@@ -1086,3 +1086,36 @@
 .fl-editor.is-narrow .fl-hint {
   display: none;
 }
+
+/* Toggle buttons keep one kit variant (switching variants re-renders the
+   trigger and detaches its tooltip); the pressed state is drawn here. */
+.fl-toggle.uid-button.is-active {
+  background: var(--fl-accent-subtle);
+  color: var(--uid-accent-text, var(--fl-accent));
+}
+
+.fl-props__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.fl-props__head .uid-icon,
+.fl-props__head svg {
+  flex: none;
+  color: var(--fl-node-muted);
+}
+.fl-props__kind {
+  font-weight: 600;
+  font-size: var(--uid-font-size-sm, 13px);
+}
+.fl-props__id {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--uid-font-family-mono, monospace);
+  font-size: var(--uid-font-size-xs, 12px);
+  color: var(--fl-node-muted);
+}

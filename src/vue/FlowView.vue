@@ -43,6 +43,9 @@ export interface NavigationLevel {
   graph: Graph
 }
 
+// The root is the kit's locale provider (a fragment): attributes go to the real root.
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     graph: Graph
@@ -63,7 +66,8 @@ const props = withDefaults(
     details?: boolean
     minimap?: boolean
     controls?: boolean
-    direction?: 'TB' | 'LR'
+    /** Layout direction; `auto` (the default without `meta.direction`) follows the canvas shape. */
+    direction?: 'TB' | 'LR' | 'auto'
     routing?: Routing
     registry?: NodeTypeRegistry
     nodeRenderers?: Record<string, Component>
@@ -336,6 +340,7 @@ defineExpose({
 <template>
   <UidLocaleProvider :locale="kitLocale">
     <div
+      v-bind="$attrs"
       class="fl-view"
       :class="{ 'is-monitoring': monitoring }"
       :lang="locale"
@@ -516,7 +521,6 @@ defineExpose({
         v-model="drawerOpen"
         :title="selectedElement ? (('label' in selectedElement && selectedElement.label) || selectedElement.id) : ''"
         width="min(400px, 100vw)"
-        class="fl-drawer"
       >
         <template
           v-if="$slots['details-header'] && selectedElement && selectedRef"

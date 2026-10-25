@@ -19,9 +19,11 @@ import {
   SquareArrowOutUpRight,
   Trash2,
   X,
+  ArrowRight,
 } from '@dskripchenko/ui/icons'
 import { isEnabled, type Alignment, type Command, type DataValue, type FlowEdge, type FlowNode, type Graph, type NodeTypeRegistry } from '../../index'
 import type { FlowLabels } from '../labels'
+import { NODE_ICONS } from '../icons'
 
 const props = defineProps<{
   graph: Graph
@@ -42,6 +44,10 @@ const emit = defineEmits<{
 const node = computed(() => (props.selection.length === 1 ? props.graph.nodes.find((n) => n.id === props.selection[0]) : undefined))
 const edge = computed(() => (props.selection.length === 1 ? props.graph.edges.find((e) => e.id === props.selection[0]) : undefined))
 const many = computed(() => props.selection.length > 1)
+const headIcon = computed(() => {
+  const def = node.value ? props.registry.get(node.value.type) : undefined
+  return (def?.icon && NODE_ICONS[def.icon]) || (node.value && NODE_ICONS[node.value.type]) || NODE_ICONS.state
+})
 const isLocked = computed(() => props.readonly || (!!node.value && props.locked(node.value)))
 
 const typeOptions = computed(() => [...props.registry.entries()].map(([value, def]) => ({ value, label: props.labels.types[value] ?? def.title })))
@@ -51,6 +57,7 @@ const kindOptions = computed(() => [
 ])
 const groupOptions = computed(() => [{ value: '', label: '—' }, ...(props.graph.groups ?? []).map((g) => ({ value: g.id, label: g.label ?? g.id }))])
 const directionOptions = computed(() => [
+  { value: 'auto', label: props.labels.directionAuto },
   { value: 'LR', label: props.labels.directionLR },
   { value: 'TB', label: props.labels.directionTB },
 ])
@@ -191,6 +198,18 @@ defineExpose({
 
     <!-- One node. -->
     <template v-else-if="node">
+      <div class="fl-props__head">
+        <component
+          :is="headIcon"
+          :size="16"
+          aria-hidden="true"
+        />
+        <span class="fl-props__kind">{{ labels.types[node.type] ?? registry.get(node.type)?.title ?? node.type }}</span>
+        <code
+          class="fl-props__id"
+          :title="node.id"
+        >{{ node.id }}</code>
+      </div>
       <UidAlert
         v-if="isLocked && !readonly"
         variant="info"
@@ -291,6 +310,18 @@ defineExpose({
 
     <!-- One edge. -->
     <template v-else-if="edge">
+      <div class="fl-props__head">
+        <component
+          :is="ArrowRight"
+          :size="16"
+          aria-hidden="true"
+        />
+        <span class="fl-props__kind">{{ labels.edge }}</span>
+        <code
+          class="fl-props__id"
+          :title="edge.id"
+        >{{ edge.id }}</code>
+      </div>
       <p class="fl-props__muted fl-props__route">
         {{ nodeLabel(edge.from) }} → {{ nodeLabel(edge.to) }}
       </p>
@@ -339,9 +370,9 @@ defineExpose({
       <UidFormField :label="labels.direction">
         <UidSelect
           :options="directionOptions"
-          :model-value="graph.meta?.direction ?? 'LR'"
+          :model-value="graph.meta?.direction ?? 'auto'"
           :disabled="readonly"
-          @update:model-value="(v) => emit('command', { type: 'updateMeta', patch: { direction: v } })"
+          @update:model-value="(v) => emit('command', { type: 'updateMeta', patch: { direction: v === 'auto' ? null : v } })"
         />
       </UidFormField>
     </template>

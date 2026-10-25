@@ -96,6 +96,9 @@ export interface ChangeEvent {
   source: 'edit' | 'undo' | 'redo'
 }
 
+// The root is the kit's locale provider (a fragment): attributes go to the real root.
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     modelValue: Graph
@@ -104,7 +107,8 @@ const props = withDefaults(
     palette?: string[]
     readonly?: boolean
     snapGrid?: number
-    direction?: 'TB' | 'LR'
+    /** Layout direction; `auto` (the default without `meta.direction`) follows the canvas shape. */
+    direction?: 'TB' | 'LR' | 'auto'
     routing?: Routing
     nodeRenderers?: Record<string, Component>
     nodeIcons?: Record<string, Component>
@@ -367,7 +371,7 @@ function distribute(axis: 'horizontal' | 'vertical'): void {
 }
 function autoLayout(): void {
   const g = level.value
-  const fresh = layoutGraph(g, { registry: props.registry, direction: props.direction, routing: props.routing, ignorePositions: true })
+  const fresh = layoutGraph(g, { registry: props.registry, direction: canvas.value?.layout.direction ?? 'LR', routing: props.routing, ignorePositions: true })
   if (run(layoutCommand(fresh))) setTimeout(() => canvas.value?.fit(true), 30)
 }
 function toggleEnabled(): void {
@@ -550,7 +554,7 @@ function onContextMenu(p: ContextPayload): void {
       entries.push({ label: L.value.cut, icon: Scissors, shortcut: `${mod}X`, action: cut, disabled: locked })
     }
     const el = n ?? level.value.edges.find((x) => x.id === t.id)
-    entries.push({ label: el && isEnabled(el) ? `${L.value.disabledTag}` : L.value.enabled, icon: Power, action: toggleEnabled, disabled: locked })
+    entries.push({ label: el && isEnabled(el) ? L.value.disable : L.value.enable, icon: Power, action: toggleEnabled, disabled: locked })
     if (multi) {
       entries.push({ separator: true })
       entries.push({
@@ -627,6 +631,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
   <UidLocaleProvider :locale="kitLocale">
     <div
       ref="rootEl"
+      v-bind="$attrs"
       class="fl-editor"
       :class="{ 'is-narrow': narrow, 'is-readonly': readonly }"
       :lang="locale"
@@ -738,11 +743,12 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
         >
           <UidButton
             size="sm"
-            :variant="snapOn ? 'secondary' : 'ghost'"
+            variant="ghost"
             :icon="Magnet"
             :aria-label="L.snapToGrid"
             :aria-pressed="snapOn"
-            class="fl-toolbar__snap"
+            class="fl-toolbar__snap fl-toggle"
+            :class="{ 'is-active': snapOn }"
             @click="snapOn = !snapOn"
           />
         </UidTooltip>
@@ -916,7 +922,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
                     class="fl-empty__add-start"
                     @click="addNode('start')"
                   >
-                    {{ L.types.start }}
+                    {{ L.addStart }}
                   </UidButton>
                   <UidButton
                     v-if="mermaid"

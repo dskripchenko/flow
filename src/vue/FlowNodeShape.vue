@@ -339,7 +339,7 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
     <g
       v-if="count"
       class="fl-node__count"
-      :transform="`translate(${round ? w * 0.85 : shape === 'diamond' ? w * 0.75 : w - countWidth / 2 - 6} ${round ? h * 0.85 : shape === 'diamond' ? h * 0.75 : h})`"
+      :transform="`translate(${round ? w * 0.12 : shape === 'diamond' ? w * 0.75 : w - countWidth / 2 - 6} ${round ? h * 0.12 : shape === 'diamond' ? h * 0.75 : h})`"
     >
       <title>{{ labels.instances }}: {{ count }}</title>
       <rect

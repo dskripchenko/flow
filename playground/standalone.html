@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flow — standalone</title>
+    <style>
+      body { margin: 0; background: #f4f4f5; }
+      #flow { height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="flow"></div>
+    <script src="/standalone/standalone.js"></script>
+    <script>
+      const graph = DskFlow.fromMermaid(`stateDiagram-v2
+        direction LR
+        [*] --> Draft
+        Draft --> Review: submit
+        Review --> Draft: changes requested
+        Review --> Published: approve
+        Published --> Archived: archive
+        Archived --> [*]`)
+      let step = 0
+      const path = ['start', 'Draft', 'Review', 'Published']
+      window.flow = DskFlow.mountFlow('#flow', {
+        graph,
+        theme: new URLSearchParams(location.search).get('theme') || 'light',
+        toggleable: true,
+        poll: {
+          intervalMs: 1000,
+          fetch: async () => {
+            const k = Math.min(step++, path.length - 1)
+            const nodes = {}
+            path.slice(0, k).forEach((id) => (nodes[id] = { status: 'done' }))
+            nodes[path[k]] = { status: 'active', count: 3 }
+            return { nodes, path: path.slice(0, k + 1), current: [path[k]] }
+          },
+        },
+      })
+    </script>
+  </body>
+</html>

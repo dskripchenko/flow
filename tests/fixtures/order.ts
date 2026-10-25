@@ -7,7 +7,7 @@ import type { Graph, MonitorSnapshot } from '../../src/index'
 
 export const paymentProcess: Graph = {
   version: 1,
-  meta: { title: 'Payment', direction: 'LR' },
+  meta: { title: 'Payment' },
   nodes: [
     { id: 'p-start', type: 'start' },
     { id: 'authorize', type: 'task', label: 'Authorize card', data: { provider: 'acquirer' } },
@@ -33,7 +33,7 @@ export const paymentProcess: Graph = {
 
 export const orderProcess: Graph = {
   version: 1,
-  meta: { title: 'Order', direction: 'LR' },
+  meta: { title: 'Order' },
   groups: [{ id: 'fulfilment', label: 'Fulfilment' }],
   nodes: [
     { id: 'start', type: 'start', label: 'Order placed' },

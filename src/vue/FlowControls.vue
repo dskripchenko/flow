@@ -79,11 +79,12 @@ const emit = defineEmits<{
     >
       <UidButton
         size="sm"
-        :variant="minimap ? 'secondary' : 'ghost'"
+        variant="ghost"
         :icon="MapIcon"
         :aria-label="labels.minimap"
         :aria-pressed="minimap"
-        class="fl-controls__minimap"
+        class="fl-controls__minimap fl-toggle"
+        :class="{ 'is-active': minimap }"
         @click="emit('update:minimap', !minimap)"
       />
     </UidTooltip>

@@ -101,6 +101,10 @@ export interface FlowLabels {
   direction: string
   directionLR: string
   directionTB: string
+  directionAuto: string
+  addStart: string
+  enable: string
+  disable: string
   addHere: string
   connectHint: string
   emptyEditorTitle: string
@@ -209,6 +213,10 @@ export const en: FlowLabels = {
   direction: 'Layout direction',
   directionLR: 'Left to right',
   directionTB: 'Top to bottom',
+  directionAuto: 'Automatic (fits the screen)',
+  addStart: 'Add a start node',
+  enable: 'Enable',
+  disable: 'Disable',
   addHere: 'Add here',
   connectHint: 'Drag from a handle to connect',
   emptyEditorTitle: 'Start your process',
@@ -317,6 +325,10 @@ export const ru: FlowLabels = {
   direction: 'Направление',
   directionLR: 'Слева направо',
   directionTB: 'Сверху вниз',
+  directionAuto: 'Автоматически (по экрану)',
+  addStart: 'Добавить начало',
+  enable: 'Включить',
+  disable: 'Отключить',
   addHere: 'Добавить сюда',
   connectHint: 'Потяните за точку, чтобы соединить',
   emptyEditorTitle: 'Начните процесс',
