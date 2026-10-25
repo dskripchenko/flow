@@ -164,4 +164,36 @@ describe('FlowEditor', () => {
     expect(edge).toMatchObject({ from: 'refund', to: 'cancelled' })
     expect((w.emitted('select')!.at(-1)![0] as string[])).toEqual([edge.id])
   })
+
+  it('locks the node types given in `locked`', async () => {
+    const w = editor({ locked: ['state'] })
+    await w.find('[data-node-id="new"]').trigger('pointerdown')
+    await key(w, 'Delete')
+    expect(model(w).nodes.some((n) => n.id === 'new')).toBe(true)
+    expect(w.find('.fl-props__label input').attributes('disabled')).toBeDefined()
+    await w.find('[data-node-id="validate"]').trigger('pointerdown')
+    await key(w, 'Delete')
+    expect(model(w).nodes.some((n) => n.id === 'validate')).toBe(false)
+  })
+
+  it('places palette clicks on free spots, next to the selected node', async () => {
+    const graph: Graph = {
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'state', label: 'A', position: { x: 0, y: 0 } },
+        { id: 'b', type: 'state', label: 'B', position: { x: 260, y: 0 } },
+      ],
+      edges: [],
+    }
+    const w = editor({ modelValue: graph })
+    await w.find('[data-node-id="a"]').trigger('pointerdown')
+    await w.find('.fl-palette__item[data-type="task"]').trigger('click')
+    const first = model(w).nodes.at(-1)!
+    // Next along the flow from the selection (to its right), on a free spot.
+    expect(first.position!.x).toBeGreaterThan(80)
+    for (let i = 0; i < 5; i++) await w.find('.fl-palette__item[data-type="state"]').trigger('click')
+    const ps = model(w).nodes.map((n) => n.position!)
+    for (let i = 0; i < ps.length; i++)
+      for (let j = i + 1; j < ps.length; j++) expect(Math.abs(ps[i]!.x - ps[j]!.x) >= 160 || Math.abs(ps[i]!.y - ps[j]!.y) >= 44, `${i} × ${j}`).toBe(true)
+  })
 })

@@ -52,7 +52,15 @@ core has no runtime dependencies; the Vue components are built on
   clipboard shortcuts, a properties panel, a validation panel, context menus,
   JSON and Mermaid import, JSON export, in-place sub-process editing, locked
   types, a narrow-screen layout.
-- `mountFlow`, `mountFlowEditor`.
+- `mountFlow`, `mountFlowEditor`, with an optional `appContext` to render
+  inside a host app (its providers reach the component).
+- Host integration: `state` is the initial value when `poll` is set (polled
+  snapshots replace it); `pollParams` reach `poll.fetch` as
+  `context.params` and restart polling at once when they change;
+  `FlowEditor`'s `locked: string[]` locks node types; nodes added from the
+  palette land on the nearest free grid spot (next along the flow from the
+  selection, else mid-view), scrolled into view and selected
+  (`findFreeSpot` in the core).
 
 **Standalone** — `dist/standalone.js` with `DskFlow.mountFlow` and
 `DskFlow.mountFlowEditor`.

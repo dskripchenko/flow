@@ -17,8 +17,9 @@ import '@dskripchenko/flow/style.css'
 | Prop | 类型 | 默认值 | |
 |---|---|---|---|
 | `graph` | `Graph` | — | 模型（根层级） |
-| `state` | `MonitorSnapshot \| MonitorState` | — | 屏幕上这张图的监控状态 |
+| `state` | `MonitorSnapshot \| MonitorState` | — | 屏幕上这张图的监控状态；与 `poll` 同用时作为初始值，之后被轮询到的快照替换 |
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | 改为轮询端点（[监控](monitoring.md)） |
+| `pollParams` | `unknown` | — | 作为 `context.params` 传给 `poll.fetch`（实例 id、过滤条件）；变化时立即重启轮询 |
 | `staleAfterMs` | `number` | 3 个间隔，≥ 15 秒 | 过期警告 |
 | `toggleable` | `boolean` | `false` | 悬停时和抽屉中的启用/禁用开关 |
 | `onToggle` | `(change) => Promise \| void` | — | 持久化切换；被拒绝时回滚并弹出错误提示 |
@@ -136,3 +137,14 @@ handle.unmount()
 
 `mountFlowEditor(el, { modelValue, onChange })` 对编辑器做同样的事；
 `handle.getGraph()` 返回编辑后的模型。
+
+在宿主 Vue 应用内部，传入它的上下文，宿主的 provider（组件库的语言和主题、
+i18n、路由）就能作用到组件；组件直接渲染进元素，不再创建单独的应用
+（`handle.app` 为 undefined）：
+
+```ts
+import { getCurrentInstance } from 'vue'
+
+const appContext = getCurrentInstance()!.appContext // 或 app._context
+const handle = mountFlow(el, { graph, appContext })
+```

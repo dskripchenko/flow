@@ -22,7 +22,7 @@ function onChange(e: ChangeEvent) {
 ## What the user can do
 
 - **Add** — drag a type from the elements panel onto the canvas, or press it
-  (it lands in the middle of the view); double-click the background for a
+  (it lands next along the flow from the selected node, or in the middle of the view, on the nearest free spot of the grid, and is scrolled into view and selected); double-click the background for a
   state; the context menu's "Add here".
 - **Connect** — hover a node: handles appear on its sides (or its ports).
   Drag from one to another node; the line snaps to the nearest handle within
@@ -124,4 +124,6 @@ history.redo()
 
 Helpers: `copyFragment` / `pasteFragment` (fresh ids, internal edges only),
 `alignNodes`, `distributeNodes`, `layoutCommand(layoutGraph(g, { ignorePositions: true }))`,
-`nextId(graph, prefix)`, `snap(point, grid)`.
+`nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`, `snap(point, grid)`.
+
+| `locked` | `string[]` | `[]` | node types users cannot move, edit or delete (besides `locked: true` in the registry) |

@@ -49,10 +49,19 @@ defineOptions({ inheritAttrs: false })
 const props = withDefaults(
   defineProps<{
     graph: Graph
-    /** Monitoring for the displayed graph: a snapshot or a reduced state. */
+    /**
+     * Monitoring for the displayed graph: a snapshot or a reduced state. With
+     * `poll` it is the initial value (e.g. rendered by the server): polled
+     * snapshots replace it. A new `state` always takes over.
+     */
     state?: MonitorSnapshot | MonitorState
-    /** Poll a monitoring endpoint instead of passing `state`. */
+    /** Poll a monitoring endpoint. */
     poll?: PollOptions
+    /**
+     * Host parameters handed to `poll.fetch` as `context.params` (an instance
+     * id, a filter…). A change restarts polling at once, dropping the old data.
+     */
+    pollParams?: unknown
     /** After how long without data the overlay warns; 3 poll intervals (min 15 s) by default. */
     staleAfterMs?: number
     toggleable?: boolean
@@ -87,6 +96,7 @@ const props = withDefaults(
   {
     state: undefined,
     poll: undefined,
+    pollParams: undefined,
     staleAfterMs: undefined,
     onToggle: undefined,
     subgraphs: () => ({}),
@@ -214,7 +224,7 @@ function back(): void {
 const monitor = useMonitor({
   state: () => props.state,
   poll: () => props.poll,
-  context: (): PollContext => ({ path: path.value, ref: stack.value[stack.value.length - 1]?.ref }),
+  context: (): PollContext => ({ path: path.value, ref: stack.value[stack.value.length - 1]?.ref, params: props.pollParams }),
   staleAfterMs: () => props.staleAfterMs,
   onError: (e) => emit('poll-error', e),
 })

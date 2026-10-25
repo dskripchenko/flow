@@ -137,3 +137,41 @@ export function distributeNodes(boxes: ReadonlyMap<string, NodeBox>, ids: readon
 export function layoutCommand(layout: GraphLayout): Command {
   return { type: 'moveNodes', moves: [...layout.nodes.values()].map((b) => ({ id: b.id, position: { x: Math.round(b.x), y: Math.round(b.y) } })) }
 }
+
+export interface FreeSpotOptions {
+  /** Snap candidates to this grid (0: no snapping). */
+  grid?: number
+  /** Clear space kept around other nodes. */
+  padding?: number
+  /** Give up after this many rings of candidates. */
+  maxRings?: number
+}
+
+/**
+ * The centre nearest to `near` where a box of `size` overlaps no box in
+ * `boxes` (with `padding`), searching outward ring by ring on the grid.
+ * Used to place nodes added from the palette.
+ */
+export function findFreeSpot(boxes: Iterable<NodeBox>, size: { width: number; height: number }, near: Point, options: FreeSpotOptions = {}): Point {
+  const grid = options.grid ?? 0
+  const pad = options.padding ?? 24
+  const list = [...boxes]
+  // `+ 0` turns -0 into 0.
+  const snapTo = (v: number) => (grid > 0 ? Math.round(v / grid) * grid : Math.round(v)) + 0
+  const free = (p: Point) => list.every((b) => Math.abs(b.x - p.x) >= (b.width + size.width) / 2 + pad || Math.abs(b.y - p.y) >= (b.height + size.height) / 2 + pad)
+  const start = { x: snapTo(near.x), y: snapTo(near.y) }
+  if (free(start)) return start
+  const step = Math.max(grid, 20)
+  const rings = options.maxRings ?? 60
+  for (let r = 1; r <= rings; r++) {
+    const ring: Point[] = []
+    for (let i = -r; i <= r; i++) {
+      ring.push({ x: start.x + i * step, y: start.y - r * step }, { x: start.x + i * step, y: start.y + r * step })
+      if (i > -r && i < r) ring.push({ x: start.x - r * step, y: start.y + i * step }, { x: start.x + r * step, y: start.y + i * step })
+    }
+    ring.sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y))
+    const hit = ring.find(free)
+    if (hit) return { x: snapTo(hit.x), y: snapTo(hit.y) }
+  }
+  return start
+}

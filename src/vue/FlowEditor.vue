@@ -56,8 +56,11 @@ import {
   distributeNodes,
   isEnabled,
   isLocked,
+  findFreeSpot,
   layoutCommand,
   layoutGraph,
+  measureNode,
+  approximateMeasurer,
   nextId,
   pasteFragment,
   snap,
@@ -105,6 +108,8 @@ const props = withDefaults(
     /** Node types offered in the palette; all of the registry by default. */
     palette?: string[]
     readonly?: boolean
+    /** Node types users cannot move, edit or delete (on top of `locked: true` in the registry). */
+    locked?: string[]
     snapGrid?: number
     /** Layout direction; `auto` (the default without `meta.direction`) follows the canvas shape. */
     direction?: 'TB' | 'LR' | 'auto'
@@ -125,6 +130,7 @@ const props = withDefaults(
     registry: () => defaultRegistry,
     palette: undefined,
     readonly: false,
+    locked: () => [],
     snapGrid: 20,
     direction: undefined,
     edgeStyle: 'orthogonal',
@@ -297,7 +303,7 @@ const warningCount = computed(() => issues.value.length - errorCount.value)
 // Selection and editing operations
 // ---------------------------------------------------------------------------
 
-const nodeLocked = (n: FlowNode) => isLocked(props.registry, n)
+const nodeLocked = (n: FlowNode) => props.locked.includes(n.type) || isLocked(props.registry, n)
 const selectedNodes = computed(() => level.value.nodes.filter((n) => selection.value.includes(n.id)))
 
 function select(ids: string[]): void {
@@ -400,14 +406,25 @@ function nodeAt(type: string, at: Point): FlowNode {
   if (def.drillable) node.subgraph = { version: 1, nodes: [{ id: 'start', type: 'start' }, { id: 'end', type: 'end' }], edges: [{ id: 'e-1', from: 'start', to: 'end' }] }
   return node
 }
-function addNode(type: string, at?: Point): void {
-  let p = at ?? canvas.value?.viewCentre() ?? { x: 0, y: 0 }
-  if (!at) {
-    // Step aside from nodes already there, so repeated adds do not stack.
-    const boxes = canvas.value?.layout.nodes
-    let guard = 0
-    while (boxes && [...boxes.values()].some((b) => Math.abs(b.x - p.x) < 40 && Math.abs(b.y - p.y) < 30) && guard++ < 50) p = { x: p.x + 40, y: p.y + 40 }
+/**
+ * Where a node added without a drop point goes: next along the flow from the
+ * selected node (to its right in LR, below in TB), else the middle of the
+ * view — moved outward to the nearest spot that overlaps nothing.
+ */
+function freeSpotFor(type: string): Point {
+  const layout = canvas.value?.layout
+  const boxes = layout?.nodes ?? new Map()
+  const size = measureNode({ id: '', type, label: L.value.types[type] ?? typeOf(props.registry, type).title }, props.registry, approximateMeasurer)
+  const one = selection.value.length === 1 ? boxes.get(selection.value[0]!) : undefined
+  let near = canvas.value?.viewCentre() ?? { x: 0, y: 0 }
+  if (one) {
+    const gap = 72
+    near = layout?.direction === 'TB' ? { x: one.x, y: one.y + one.height / 2 + gap + size.height / 2 } : { x: one.x + one.width / 2 + gap + size.width / 2, y: one.y }
   }
+  return findFreeSpot(boxes.values(), size, near, { grid: grid.value, padding: 32 })
+}
+function addNode(type: string, at?: Point): void {
+  const p = at ?? freeSpotFor(type)
   const node = nodeAt(type, p)
   if (run({ type: 'addNodes', nodes: [node] })) {
     select([node.id])

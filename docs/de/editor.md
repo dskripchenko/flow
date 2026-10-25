@@ -22,7 +22,7 @@ function onChange(e: ChangeEvent) {
 ## Was der Benutzer tun kann
 
 - **Hinzufügen** — einen Typ aus dem Elementbereich auf die Zeichenfläche
-  ziehen oder ihn anklicken (er landet in der Mitte der Ansicht); Doppelklick
+  ziehen oder ihn anklicken (er landet im Fluss nach dem ausgewählten Knoten oder in der Mitte der Ansicht – auf dem nächsten freien Rasterplatz –, wird in den Blick gerückt und ausgewählt); Doppelklick
   auf den Hintergrund für einen state; „Hier hinzufügen“ im Kontextmenü.
 - **Verbinden** — mit der Maus über einen Knoten fahren: An seinen Seiten (oder
   seinen Ports) erscheinen Griffe. Von einem zu einem anderen Knoten ziehen; die
@@ -132,4 +132,6 @@ history.redo()
 
 Hilfsfunktionen: `copyFragment` / `pasteFragment` (neue IDs, nur interne Kanten),
 `alignNodes`, `distributeNodes`, `layoutCommand(layoutGraph(g, { ignorePositions: true }))`,
-`nextId(graph, prefix)`, `snap(point, grid)`.
+`nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`, `snap(point, grid)`.
+
+| `locked` | `string[]` | `[]` | Knotentypen, die nicht verschoben, bearbeitet oder gelöscht werden können (zusätzlich zu `locked: true` in der Registry) |

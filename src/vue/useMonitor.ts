@@ -12,6 +12,8 @@ export interface PollContext {
   path: string[]
   /** The `subgraph` reference of the displayed graph, when it was a string. */
   ref?: string
+  /** The host's `pollParams` (an instance id, a filter…); a change restarts polling at once. */
+  params?: unknown
 }
 
 export interface PollOptions {
@@ -42,16 +44,24 @@ export function useMonitor(options: {
   let poller: Poller | undefined
   let clock: ReturnType<typeof setInterval> | undefined
 
-  // A snapshot given as a prop is stamped when it arrives, not on every tick.
-  const given = shallowRef<MonitorState | undefined>()
+  // One current state. A `state` prop sets it (stamped when it arrives, not on
+  // every tick); polled snapshots then replace it (or merge into it), so a
+  // server-rendered first snapshot hands over to polling. Latest wins.
+  const current = polled
+  let given: MonitorState | undefined
+  /** Bumped when the `state` prop changes, so a restart keeps a snapshot that came with the change. */
+  let givenVersion = 0
+  let restartVersion = 0
   watch(
     () => options.state(),
     (v) => {
-      given.value = v ? (isState(v) ? v : reduceMonitor(emptyMonitorState(), { type: 'snapshot', snapshot: v, at: Date.now() })) : undefined
+      given = v ? (isState(v) ? v : reduceMonitor(emptyMonitorState(), { type: 'snapshot', snapshot: v, at: Date.now() })) : undefined
+      givenVersion++
+      current.value = given
     },
     { immediate: true },
   )
-  const state = computed<MonitorState | undefined>(() => given.value ?? polled.value)
+  const state = computed<MonitorState | undefined>(() => current.value)
 
   const interval = computed(() => options.poll()?.intervalMs ?? 5000)
   const stale = computed(() => {
@@ -71,13 +81,18 @@ export function useMonitor(options: {
   function start(): void {
     stop()
     const p = options.poll()
+    // A new level or new params: the old data describes something else —
+    // unless the host handed a fresh snapshot along with the change.
+    const fresh = givenVersion !== restartVersion
+    restartVersion = givenVersion
     if (!p) {
-      polled.value = undefined
+      // No polling: the host's state is the state, on every level.
+      current.value = given
       return
     }
+    current.value = fresh ? given : undefined
     const ctx = options.context()
-    polled.value = undefined
-    loading.value = true
+    loading.value = !current.value
     poller = createPoller<MonitorSnapshot>({
       // The latest fetch, so a host passing a new function each render does not restart polling.
       fetch: (signal) => (options.poll() ?? p).fetch(signal, ctx),
@@ -98,7 +113,14 @@ export function useMonitor(options: {
     poller.start()
   }
 
-  const contextKey = computed(() => JSON.stringify(options.context()))
+  const contextKey = computed(() => {
+    try {
+      return JSON.stringify(options.context())
+    } catch {
+      // Params that do not serialise (cycles): compare by identity instead.
+      return options.context()
+    }
+  })
   const pollKey = computed(() => {
     const p = options.poll()
     return p ? `${p.intervalMs ?? 5000}|${p.merge ? 1 : 0}|${p.visibilityPause === false ? 0 : 1}` : ''

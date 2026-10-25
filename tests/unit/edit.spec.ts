@@ -6,6 +6,7 @@ import {
   applyCommand,
   copyFragment,
   distributeNodes,
+  findFreeSpot,
   layoutCommand,
   layoutGraph,
   nextId,
@@ -165,5 +166,34 @@ describe('selection operations', () => {
     expect(g.nodes.every((n) => n.position)).toBe(true)
     const again = layoutGraph(g)
     expect(again.nodes.get('new')!.x).toBeCloseTo(layoutGraph(orderProcess).nodes.get('new')!.x, 0)
+  })
+})
+
+describe('findFreeSpot', () => {
+  const boxes: NodeBox[] = [
+    { x: 0, y: 0, width: 160, height: 44 },
+    { x: 200, y: 0, width: 160, height: 44 },
+    { x: 0, y: 80, width: 160, height: 44 },
+  ]
+  const size = { width: 160, height: 44 }
+  const clear = (p: { x: number; y: number }) => boxes.every((b) => Math.abs(b.x - p.x) >= (b.width + size.width) / 2 + 24 || Math.abs(b.y - p.y) >= (b.height + size.height) / 2 + 24)
+
+  it('keeps a free spot as is (snapped)', () => {
+    expect(findFreeSpot(boxes, size, { x: 603, y: 9 }, { grid: 20 })).toEqual({ x: 600, y: 0 })
+  })
+  it('moves off occupied space to the nearest clear, grid-aligned spot', () => {
+    const p = findFreeSpot(boxes, size, { x: 10, y: 10 }, { grid: 20 })
+    expect(clear(p)).toBe(true)
+    expect(Math.abs(p.x % 20)).toBe(0)
+    expect(Math.abs(p.y % 20)).toBe(0)
+    expect(Math.hypot(p.x - 10, p.y - 10)).toBeLessThan(260)
+  })
+  it('places a series of nodes without overlaps', () => {
+    const placed = [...boxes]
+    for (let i = 0; i < 8; i++) {
+      const p = findFreeSpot(placed, size, { x: 100, y: 40 }, { grid: 20, padding: 24 })
+      for (const b of placed) expect(Math.abs(b.x - p.x) >= (b.width + size.width) / 2 || Math.abs(b.y - p.y) >= (b.height + size.height) / 2).toBe(true)
+      placed.push({ ...p, ...size })
+    }
   })
 })

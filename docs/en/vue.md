@@ -19,8 +19,9 @@ switches, drill-down into sub-processes and a details drawer.
 | Prop | Type | Default | |
 |---|---|---|---|
 | `graph` | `Graph` | — | the model (root level) |
-| `state` | `MonitorSnapshot \| MonitorState` | — | monitoring for the graph on screen |
+| `state` | `MonitorSnapshot \| MonitorState` | — | monitoring for the graph on screen; with `poll`, the initial value that polled snapshots replace |
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | poll an endpoint instead ([monitoring](monitoring.md)) |
+| `pollParams` | `unknown` | — | handed to `poll.fetch` as `context.params` (an instance id, a filter); a change restarts polling at once |
 | `staleAfterMs` | `number` | 3 intervals, ≥ 15 s | the stale warning |
 | `toggleable` | `boolean` | `false` | enable/disable switches on hover and in the drawer |
 | `onToggle` | `(change) => Promise \| void` | — | persists a toggle; a rejection rolls it back with an error toast |
@@ -151,3 +152,14 @@ handle.unmount()
 
 `mountFlowEditor(el, { modelValue, onChange })` does the same for the editor;
 `handle.getGraph()` returns the edited model.
+
+Inside a host Vue app, pass its context so the host's providers (the kit's
+locale and theme, i18n, the router) reach the component; it is then rendered
+into the element without a separate app (`handle.app` is undefined):
+
+```ts
+import { getCurrentInstance } from 'vue'
+
+const appContext = getCurrentInstance()!.appContext // or app._context
+const handle = mountFlow(el, { graph, appContext })
+```

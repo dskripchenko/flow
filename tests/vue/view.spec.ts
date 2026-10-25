@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { FlowView, FlowNodeShape, en, type ToggleChange } from '../../src/vue'
+import { createApp } from 'vue'
+import { FlowView, FlowNodeShape, en, mountFlow, type ToggleChange } from '../../src/vue'
 import { defaultRegistry, layoutGraph, type MonitorSnapshot } from '../../src/index'
 import { orderProcess, snapshotAt } from '../fixtures/order'
 
@@ -135,6 +136,67 @@ describe('FlowView', () => {
     const Custom = { props: ['node', 'geometry'], template: '<text class="custom">{{ node.label }}!</text>' }
     const w = view({ nodeRenderers: { task: Custom } })
     expect(w.find('[data-node-id="validate"] .custom').text()).toBe('Validate order!')
+  })
+})
+
+describe('FlowView: host integration', () => {
+  it('starts from a server snapshot and hands over to polling', async () => {
+    vi.useFakeTimers()
+    const fetch = vi.fn(async (): Promise<MonitorSnapshot> => snapshotAt(4))
+    const w = view({ state: snapshotAt(1), poll: { fetch, intervalMs: 1000, visibilityPause: false } })
+    // The given snapshot shows at once (no loading state).
+    expect(w.find('[data-node-id="new"] .fl-node').classes()).toContain('is-current')
+    await vi.advanceTimersByTimeAsync(0)
+    await flushPromises()
+    expect(fetch).toHaveBeenCalled()
+    expect(w.find('[data-node-id="payment"] .fl-node').classes()).toContain('is-current')
+    // A new state from the host takes over again.
+    await w.setProps({ state: snapshotAt(2) })
+    expect(w.find('[data-node-id="validate"] .fl-node').classes()).toContain('is-current')
+    w.unmount()
+    vi.useRealTimers()
+  })
+
+  it('passes pollParams to fetch and restarts at once when they change', async () => {
+    vi.useFakeTimers()
+    const seen: unknown[] = []
+    const fetch = vi.fn(async (_s: AbortSignal, ctx: { params?: unknown }): Promise<MonitorSnapshot> => {
+      seen.push(ctx.params)
+      return (ctx.params as { instance: number }).instance === 1 ? snapshotAt(1) : snapshotAt(6)
+    })
+    const w = view({ poll: { fetch, intervalMs: 60_000, visibilityPause: false }, pollParams: { instance: 1 } })
+    await vi.advanceTimersByTimeAsync(0)
+    await flushPromises()
+    expect(w.find('[data-node-id="new"] .fl-node').classes()).toContain('is-current')
+    await w.setProps({ pollParams: { instance: 2 } })
+    await vi.advanceTimersByTimeAsync(0)
+    await flushPromises()
+    expect(seen).toEqual([{ instance: 1 }, { instance: 2 }])
+    expect(w.find('[data-node-id="payment"] .fl-node').classes()).toContain('is-current')
+    // The same params (a new object) do not restart.
+    await w.setProps({ pollParams: { instance: 2 } })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(fetch).toHaveBeenCalledTimes(2)
+    w.unmount()
+    vi.useRealTimers()
+  })
+
+  it('mounts into a host app context', async () => {
+    const key = Symbol('host')
+    const Probe = { props: ['node', 'geometry'], inject: { host: { from: key, default: 'none' } }, template: '<text class="probe">{{ host }}</text>' }
+    const host = createApp({ render: () => null })
+    host.provide(key, 'from-host')
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const handle = mountFlow(el, { graph: orderProcess, appContext: host._context, nodeRenderers: { task: Probe }, toastProvider: false })
+    await flushPromises()
+    expect(handle.app).toBeUndefined()
+    expect(el.querySelector('.probe')?.textContent).toBe('from-host')
+    handle.update({ graph: { ...orderProcess, nodes: orderProcess.nodes.filter((n) => n.id !== 'refund') } })
+    await flushPromises()
+    expect(el.querySelector('[data-node-id="refund"]')).toBeNull()
+    handle.unmount()
+    expect(el.querySelector('[data-node-id]')).toBeNull()
   })
 })
 

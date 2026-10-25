@@ -39,6 +39,14 @@ speichert Positionen.
   den Zustand für diese Ebene. Beantworten Sie HTTP-Fehler mit einem Status
   außerhalb von 2xx: Der Viewer zeigt den Fehler an, behält die letzten Daten
   und verlängert die Wartezeit.
+- Einen vom Server gerenderten ersten Snapshot in `state` übergeben; mit
+  `poll` ersetzen ihn die abgefragten Snapshots – vor der ersten Anfrage
+  bleibt nichts leer.
+- Host-Parameter (die angezeigte Instanz, ein Filter) gehören in
+  `pollParams`; sie erreichen `fetch` als `context.params`, und eine Änderung
+  startet das Polling sofort neu (alte Daten werden verworfen, sofern mit der
+  Änderung kein neuer `state` kommt). Das bereitgestellte `refresh()` fragt
+  sofort ab.
 
 ## Umschalten
 
@@ -76,5 +84,5 @@ oder `loadSubgraph(ref, node) => Promise<Graph>` (z. B. `GET /processes/{ref}`).
 
 Das einfachste Backend speichert `graph` (mit Debounce). Ein kollaboratives
 oder auditiertes Backend speichert die `command`s. Gesperrte Knotentypen
-(`locked: true` in der Registry) können im Editor weder geändert noch gelöscht
-werden — setzen Sie dasselbe auf dem Server durch.
+(Prop `locked: ['typ', …]` des Editors oder `locked: true` in der Registry)
+können im Editor weder verschoben, geändert noch gelöscht werden — setzen Sie dasselbe auf dem Server durch.

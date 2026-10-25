@@ -103,10 +103,12 @@ export {
   alignNodes,
   copyFragment,
   distributeNodes,
+  findFreeSpot,
   isFragment,
   layoutCommand,
   pasteFragment,
   type Alignment,
+  type FreeSpotOptions,
   type Fragment,
 } from './edit/selection'
 

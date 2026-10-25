@@ -34,6 +34,11 @@ Schema：`@dskripchenko/flow/schema/graph.schema.json`（JSON Schema 2020-12）�
 - 下钻时，查看器传入 `context.path`（已进入的子流程的节点 id）和 `context.ref`
   （子流程引用）；请返回该层级的状态。HTTP 错误请以非 2xx 状态码响应：查看器会显示错误、
   保留最后的数据并退避重试。
+- 服务器渲染的第一份快照放在 `state` 中；设置了 `poll` 时，轮询到的快照会替换它
+  ——第一次请求之前也不会空白。
+- 宿主参数（屏幕上的实例、过滤条件）放在 `pollParams` 中；它们作为
+  `context.params` 传给 `fetch`，变化时立即重启轮询（旧数据被丢弃，除非随变化
+  一起传入了新的 `state`）。公开的 `refresh()` 会立即轮询。
 
 ## 切换
 
@@ -68,4 +73,4 @@ Schema：`@dskripchenko/flow/schema/graph.schema.json`（JSON Schema 2020-12）�
 ```
 
 最简单的后端存储 `graph`（加防抖）。需要协作或审计的后端存储 `command`。被锁定的节点
-类型（注册表中 `locked: true`）在编辑器中不能修改或删除——请在服务器上执行同样的约束。
+类型（编辑器的 `locked: ['type', …]` 属性，或注册表中 `locked: true`）在编辑器中不能移动、修改或删除——请在服务器上执行同样的约束。

@@ -21,7 +21,7 @@ function onChange(e: ChangeEvent) {
 
 ## 用户可以做什么
 
-- **添加** —— 从元素面板把类型拖到画布上，或点击它（落在视图中央）；双击背景添加一个
+- **添加** —— 从元素面板把类型拖到画布上，或点击它（放在所选节点沿流程方向的下一个位置，或视图中央——取最近的空闲网格位置——并滚动到可见处、被选中）；双击背景添加一个
   state；上下文菜单中的“在此添加”。
 - **连接** —— 悬停在节点上：其各边（或端口）出现手柄。从手柄拖到另一个节点；连线会吸附
   到范围内最近的手柄，新建的转换会被选中以便填写标签。用键盘：在节点属性中选择
@@ -117,4 +117,6 @@ history.redo()
 
 辅助函数：`copyFragment` / `pasteFragment`（新 id，仅保留内部边）、
 `alignNodes`、`distributeNodes`、`layoutCommand(layoutGraph(g, { ignorePositions: true }))`、
-`nextId(graph, prefix)`、`snap(point, grid)`。
+`nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`、`snap(point, grid)`。
+
+| `locked` | `string[]` | `[]` | 用户不能移动、编辑或删除的节点类型（在注册表 `locked: true` 之外） |

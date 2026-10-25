@@ -485,6 +485,36 @@ try {
     await close()
   }
 
+  // Palette clicks land on free spots: five in a row, no overlapping nodes.
+  {
+    const { page, errors, close } = await open('?view=editor')
+    await page.locator('[data-node-id="new"]').focus()
+    await page.locator('[data-node-id="new"]').click()
+    const before = await page.locator('[data-node-id]').count()
+    for (const type of ['state', 'task', 'state', 'decision', 'state']) {
+      await page.locator(`.fl-palette__item[data-type="${type}"]`).click()
+      await page.waitForTimeout(120)
+    }
+    check('editor: five palette clicks add five nodes', (await page.locator('[data-node-id]').count()) === before + 5)
+    const overlaps = await page.evaluate(() => {
+      const boxes = [...document.querySelectorAll('[data-node-id]')].map((g) => ({ id: g.dataset.nodeId, r: g.querySelector('.fl-node__body').getBoundingClientRect() }))
+      const out = []
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i].r
+          const b = boxes[j].r
+          if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) out.push(`${boxes[i].id} × ${boxes[j].id}`)
+        }
+      return out
+    })
+    check('editor: palette-added nodes overlap no node', overlaps.length === 0, overlaps.join('; '))
+    const last = await page.evaluate(() => JSON.parse(window.__flow()).nodes.at(-1).id)
+    check('editor: the added node is selected and in view', (await page.locator(`[data-node-id="${last}"] .fl-node.is-selected`).count()) === 1 && (await page.locator(`[data-node-id="${last}"]`).isVisible()))
+    await shot(page, 'editor-palette-adds')
+    check('editor palette adds: no page errors', errors.length === 0, errors.join('; '))
+    await close()
+  }
+
   // Empty editor.
   {
     const { page, errors, close } = await open('?view=editor&graph=empty')

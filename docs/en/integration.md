@@ -36,6 +36,12 @@ laid out on the client; the first edit in the editor stores positions.
   sub-processes) and `context.ref` (the sub-process reference); return the
   state for that level. Answer HTTP errors with a non-2xx status: the viewer
   shows the error, keeps the last data and backs off.
+- A first snapshot rendered by the server goes in `state`; with `poll` set,
+  polled snapshots replace it — no blank state before the first request.
+- Host parameters (the instance on screen, a filter) go in `pollParams`; they
+  reach `fetch` as `context.params`, and a change restarts polling at once
+  (old data is dropped unless a new `state` comes with the change). The
+  exposed `refresh()` polls immediately.
 
 ## Toggle
 
@@ -71,5 +77,6 @@ references, either pass `subgraphs: { ref: Graph }` or
 ```
 
 The simplest backend stores `graph` (debounced). A collaborative or audited
-backend stores `command`s. Locked node types (`locked: true` in the registry)
-cannot be changed or deleted in the editor — enforce the same on the server.
+backend stores `command`s. Locked node types (the editor's `locked: ['type', …]` prop, or `locked: true`
+in the registry) cannot be moved, changed or deleted in the editor — enforce
+the same on the server.

@@ -20,8 +20,9 @@ Detail-Drawer.
 | Prop | Typ | Standard | |
 |---|---|---|---|
 | `graph` | `Graph` | — | das Modell (Wurzelebene) |
-| `state` | `MonitorSnapshot \| MonitorState` | — | Monitoring für den angezeigten Graphen |
+| `state` | `MonitorSnapshot \| MonitorState` | — | Monitoring für den angezeigten Graphen; mit `poll` der Anfangswert, den abgefragte Snapshots ersetzen |
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | stattdessen einen Endpunkt abfragen ([Monitoring](monitoring.md)) |
+| `pollParams` | `unknown` | — | wird `poll.fetch` als `context.params` übergeben (Instanz-ID, Filter); eine Änderung startet das Polling sofort neu |
 | `staleAfterMs` | `number` | 3 Intervalle, ≥ 15 s | die Veraltet-Warnung |
 | `toggleable` | `boolean` | `false` | Schalter zum Aktivieren/Deaktivieren bei Hover und im Drawer |
 | `onToggle` | `(change) => Promise \| void` | — | speichert ein Umschalten; eine Ablehnung macht es mit einem Fehler-Toast rückgängig |
@@ -156,3 +157,15 @@ handle.unmount()
 
 `mountFlowEditor(el, { modelValue, onChange })` tut dasselbe für den Editor;
 `handle.getGraph()` liefert das bearbeitete Modell.
+
+Innerhalb einer Vue-App des Hosts deren Kontext übergeben – dann erreichen
+die Provider des Hosts (Locale und Theme des Kits, i18n, Router) die
+Komponente; sie wird ohne eigene App in das Element gerendert (`handle.app`
+ist undefined):
+
+```ts
+import { getCurrentInstance } from 'vue'
+
+const appContext = getCurrentInstance()!.appContext // oder app._context
+const handle = mountFlow(el, { graph, appContext })
+```

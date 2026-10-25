@@ -19,8 +19,9 @@ import '@dskripchenko/flow/style.css'
 | Свойство | Тип | По умолчанию | |
 |---|---|---|---|
 | `graph` | `Graph` | — | модель (корневой уровень) |
-| `state` | `MonitorSnapshot \| MonitorState` | — | мониторинг для графа на экране |
+| `state` | `MonitorSnapshot \| MonitorState` | — | мониторинг для графа на экране; вместе с `poll` — начальное значение, которое заменяют опрошенные снимки |
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | опрашивать эндпоинт ([мониторинг](monitoring.md)) |
+| `pollParams` | `unknown` | — | передаётся в `poll.fetch` как `context.params` (id экземпляра, фильтр); изменение сразу перезапускает опрос |
 | `staleAfterMs` | `number` | 3 интервала, ≥ 15 с | предупреждение об устаревании |
 | `toggleable` | `boolean` | `false` | переключатели при наведении и в панели деталей |
 | `onToggle` | `(change) => Promise \| void` | — | сохраняет переключение; отказ откатывает его и показывает тост с ошибкой |
@@ -153,3 +154,14 @@ handle.unmount()
 
 `mountFlowEditor(el, { modelValue, onChange })` делает то же для редактора;
 `handle.getGraph()` возвращает отредактированную модель.
+
+Внутри Vue-приложения хоста передайте его контекст — тогда провайдеры хоста
+(локаль и тема кита, i18n, роутер) доходят до компонента; он рендерится в
+элемент без отдельного приложения (`handle.app` не определён):
+
+```ts
+import { getCurrentInstance } from 'vue'
+
+const appContext = getCurrentInstance()!.appContext // или app._context
+const handle = mountFlow(el, { graph, appContext })
+```
