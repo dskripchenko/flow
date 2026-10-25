@@ -1119,3 +1119,7 @@
   font-size: var(--uid-font-size-xs, 12px);
   color: var(--fl-node-muted);
 }
+.fl-props__transition.uid-button {
+  justify-content: flex-start;
+  width: 100%;
+}

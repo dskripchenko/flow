@@ -1223,6 +1223,7 @@ function iconFor(n: FlowNode): Component | undefined {
               :drillable="isDrillable(n)"
               :icon="iconFor(n)"
               :labels="labels"
+              :label-side="layout.direction === 'TB' ? 'right' : 'below'"
               @enter="emit('enter', n.id)"
             />
           </g>

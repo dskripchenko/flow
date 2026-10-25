@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { FlowEditor, type ChangeEvent } from '../../src/vue'
+import { UidSelect } from '@dskripchenko/ui'
 import { createRegistry, type Graph } from '../../src/index'
 import { fromMermaid } from '../../src/mermaid'
 import { orderProcess } from '../fixtures/order'
@@ -149,5 +150,18 @@ describe('FlowEditor', () => {
     expect(change.local.path).toEqual(['payment'])
     const sub = model(w).nodes.find((n) => n.id === 'payment')!.subgraph as Graph
     expect(sub.nodes.find((n) => n.id === 'authorize')!.label).toBe('Authorise')
+  })
+
+  it('connects from the properties panel without a pointer', async () => {
+    const w = editor()
+    await w.find('[data-node-id="refund"]').trigger('pointerdown')
+    await flushPromises()
+    const select = w.findAllComponents(UidSelect).find((c) => c.classes().includes('fl-props__connect'))!
+    expect(select).toBeDefined()
+    select.vm.$emit('update:modelValue', 'cancelled')
+    await flushPromises()
+    const edge = model(w).edges.at(-1)!
+    expect(edge).toMatchObject({ from: 'refund', to: 'cancelled' })
+    expect((w.emitted('select')!.at(-1)![0] as string[])).toEqual([edge.id])
   })
 })

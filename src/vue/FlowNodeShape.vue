@@ -25,6 +25,8 @@ const props = defineProps<{
   drillable?: boolean
   icon?: Component
   labels: FlowLabels
+  /** Where a start/end label goes: under the circle (LR) or to its right (TB). */
+  labelSide?: 'below' | 'right'
 }>()
 
 const emit = defineEmits<{ enter: [] }>()
@@ -61,7 +63,10 @@ const text = computed(() => {
   const lines = props.geometry.lines
   const desc = props.geometry.descriptionLines
   const total = lines.length * lineH + desc.length * descH
-  if (round.value) return { x: w.value / 2, y: h.value + 16, anchor: 'middle' as const }
+  if (round.value) {
+    if (props.labelSide === 'right') return { x: w.value + 8, y: h.value / 2 + 4 - ((lines.length - 1) * lineH) / 2, anchor: 'start' as const }
+    return { x: w.value / 2, y: h.value + 16, anchor: 'middle' as const }
+  }
   const left = showTile.value ? 46 : 14
   const centred = shape.value === 'diamond' || (!showTile.value && shape.value !== 'note')
   return {

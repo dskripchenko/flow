@@ -104,6 +104,8 @@ export interface FlowLabels {
   directionAuto: string
   addStart: string
   enable: string
+  transitions: string
+  addTransition: string
   disable: string
   addHere: string
   connectHint: string
@@ -216,6 +218,8 @@ export const en: FlowLabels = {
   directionAuto: 'Automatic (fits the screen)',
   addStart: 'Add a start node',
   enable: 'Enable',
+  transitions: 'Transitions',
+  addTransition: 'Add a transition to…',
   disable: 'Disable',
   addHere: 'Add here',
   connectHint: 'Drag from a handle to connect',
@@ -328,6 +332,8 @@ export const ru: FlowLabels = {
   directionAuto: 'Автоматически (по экрану)',
   addStart: 'Добавить начало',
   enable: 'Включить',
+  transitions: 'Переходы',
+  addTransition: 'Добавить переход в…',
   disable: 'Отключить',
   addHere: 'Добавить сюда',
   connectHint: 'Потяните за точку, чтобы соединить',

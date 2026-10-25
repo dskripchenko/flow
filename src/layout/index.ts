@@ -31,6 +31,8 @@ export interface LayoutOptions {
 export const LABEL_FONT: FontSpec = { size: 13, weight: 500 }
 export const DESCRIPTION_FONT: FontSpec = { size: 11 }
 export const EDGE_FONT: FontSpec = { size: 11, weight: 500 }
+/** The label beside a start/end circle. */
+export const OUTSIDE_FONT: FontSpec = { size: 12 }
 const LINE = 17
 const DESC_LINE = 14
 const PAD_X = 14
@@ -204,9 +206,15 @@ function runLayered(
   const nodes: LayoutNode[] = graph.nodes.map((n) => {
     const s = sized.get(n.id)!
     const def = typeOf(registry, n.type)
-    // Room for a label drawn under a circle.
-    const extra = def.labelOutside && s.lines.length ? s.lines.length * LINE + 4 : 0
-    const node: LayoutNode = { id: n.id, width: s.width, height: s.height + extra * 2 }
+    // Room for a label drawn beside a circle: under it in LR, to its right in TB
+    // (where the flow leaves through the bottom). Reserved on both sides to stay centred.
+    let w = s.width
+    let h = s.height
+    if (def.labelOutside && s.lines.length) {
+      if (direction === 'LR') h += (s.lines.length * LINE + 4) * 2
+      else w += (Math.max(...s.lines.map((l) => (options.measure ?? approximateMeasurer)(l, OUTSIDE_FONT))) + 10) * 2
+    }
+    const node: LayoutNode = { id: n.id, width: w, height: h }
     if (n.group && groupIds.has(n.group)) node.cluster = n.group
     return node
   })
@@ -415,7 +423,11 @@ export function boundsOf(nodes: Map<string, NodeBox>, edges: Map<string, EdgeGeo
     x1 = Math.max(x1, b.x + b.width / 2)
     y1 = Math.max(y1, b.y + b.height / 2 + extraBottom)
   }
-  for (const b of nodes.values()) box(b, b.width <= 40 ? outsideLabels : 0)
+  for (const b of nodes.values()) {
+    box(b, b.width <= 40 ? outsideLabels : 0)
+    // A label to the right of a small circle (TB).
+    if (b.width <= 40 && 'lines' in b && (b as NodeGeometry).lines.length) box({ ...b, x: b.x + 60, width: b.width + 120 })
+  }
   for (const g of groups.values()) box(g)
   for (const e of edges.values()) {
     for (const p of e.points) box({ x: p.x, y: p.y, width: 0, height: 0 })

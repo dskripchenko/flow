@@ -39,6 +39,8 @@ const emit = defineEmits<{
   distribute: [axis: 'horizontal' | 'vertical']
   delete: []
   'open-subgraph': [nodeId: string]
+  connect: [from: string, to: string]
+  select: [id: string]
 }>()
 
 const node = computed(() => (props.selection.length === 1 ? props.graph.nodes.find((n) => n.id === props.selection[0]) : undefined))
@@ -61,6 +63,12 @@ const directionOptions = computed(() => [
   { value: 'LR', label: props.labels.directionLR },
   { value: 'TB', label: props.labels.directionTB },
 ])
+const outgoing = computed(() => (node.value ? props.graph.edges.filter((e) => e.from === node.value!.id) : []))
+const targetOptions = computed(() =>
+  props.graph.nodes
+    .filter((n) => !props.registry.get(n.type)?.noIncoming && !props.registry.get(n.type)?.annotation)
+    .map((n) => ({ value: n.id, label: n.label || props.labels.types[n.type] || n.id })),
+)
 const nodeLabel = (id: string) => props.graph.nodes.find((n) => n.id === id)?.label ?? id
 
 function patchNode(patch: Record<string, unknown>, field?: string): void {
@@ -257,6 +265,37 @@ defineExpose({
         :disabled="isLocked"
         @update:model-value="(v: boolean) => emit('command', { type: 'setEnabled', kind: 'node', id: node!.id, enabled: v })"
       />
+
+      <section
+        v-if="!registry.get(node.type)?.annotation"
+        class="fl-props__section fl-props__transitions"
+      >
+        <h4>{{ labels.transitions }}</h4>
+        <UidButton
+          v-for="e in outgoing"
+          :key="e.id"
+          size="sm"
+          variant="ghost"
+          :icon="ArrowRight"
+          class="fl-props__transition"
+          @click="emit('select', e.id)"
+        >
+          {{ nodeLabel(e.to) }}<span
+            v-if="e.label"
+            class="fl-props__muted"
+          > · {{ e.label }}</span>
+        </UidButton>
+        <UidSelect
+          v-if="!isLocked && !registry.get(node.type)?.noOutgoing"
+          class="fl-props__connect"
+          :options="targetOptions"
+          :model-value="''"
+          :placeholder="labels.addTransition"
+          searchable
+          size="sm"
+          @update:model-value="(v) => v && emit('connect', node!.id, String(v))"
+        />
+      </section>
 
       <section
         v-if="drillableType || subgraphKind !== 'none'"

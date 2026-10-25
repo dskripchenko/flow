@@ -986,6 +986,8 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
                 @distribute="distribute"
                 @delete="deleteSelection"
                 @open-subgraph="openSubgraph"
+                @connect="(from: string, to: string) => onConnect({ from, to })"
+                @select="(id: string) => { select([id]); canvas?.centreOn(id) }"
               />
               <slot
                 name="properties"
