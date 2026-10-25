@@ -1,0 +1,8 @@
+/* A page built only from the standalone bundle: the kit's base text styles on the widget, not the page. */
+.fl-view,
+.fl-editor {
+  font-family: var(--uid-font-family-sans, system-ui, sans-serif);
+  font-size: var(--uid-font-size-md, 14px);
+  color: var(--uid-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
