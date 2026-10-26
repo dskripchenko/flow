@@ -1,6 +1,6 @@
 # @dskripchenko/flow
 
-## Unreleased
+## 1.0.0 — 2026-10-26
 
 First release: process and state-machine graphs — a viewer with live
 monitoring, drill-down and enable/disable switches, and a visual editor. The
