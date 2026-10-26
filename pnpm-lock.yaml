@@ -15,8 +15,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@dskripchenko/ui':
-        specifier: ^1.14.0
-        version: 1.14.0(vue@3.5.44(typescript@6.0.3))
+        specifier: ^1.15.0
+        version: 1.15.0(vue@3.5.44(typescript@6.0.3))
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0)
@@ -222,8 +222,8 @@ packages:
     resolution: {integrity: sha512-Q07LPeEGlwT8xhb9RrnFlzbtAvRkvupT4RaUj70sJO4WTcZOgj0hZOHUgq3pRVsszGoB76rjK55JnZKbxv+iaw==}
     engines: {node: '>=20'}
 
-  '@dskripchenko/ui@1.14.0':
-    resolution: {integrity: sha512-1C6+Nyiy3ne6WT4XIC1/YkijcaMpr9XuqZgYsTAGodqNCUHFz+1R35IuWnAeuZFtHnAkdDym6op8Ft7YH2aVOA==}
+  '@dskripchenko/ui@1.15.0':
+    resolution: {integrity: sha512-yxJkIz4Zf1W11O3wLzhAKfHczudmlH4GGPpG2/ZBnm+p/09Ul2udI0oz2KffyB94ZQiHVyBUOpdG5NGpQ2UzCg==}
     engines: {node: '>=20'}
     peerDependencies:
       vue: ^3.4.0
@@ -1865,7 +1865,7 @@ snapshots:
 
   '@dskripchenko/diagrams@1.1.0': {}
 
-  '@dskripchenko/ui@1.14.0(vue@3.5.44(typescript@6.0.3))':
+  '@dskripchenko/ui@1.15.0(vue@3.5.44(typescript@6.0.3))':
     dependencies:
       lucide-vue-next: 0.460.0(vue@3.5.44(typescript@6.0.3))
       vue: 3.5.44(typescript@6.0.3)

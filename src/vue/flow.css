@@ -1057,17 +1057,6 @@
   margin-top: 8px;
 }
 
-.fl-context-anchor {
-  position: fixed;
-  width: 1px;
-  height: 1px;
-  z-index: 50;
-}
-.fl-context-anchor__trigger {
-  display: block;
-  width: 1px;
-  height: 1px;
-}
 .fl-menu-label {
   flex: 1 1 auto;
 }
@@ -1092,8 +1081,7 @@
   display: none;
 }
 
-/* Toggle buttons keep one kit variant (switching variants re-renders the
-   trigger and detaches its tooltip); the pressed state is drawn here. */
+/* A pressed toggle (minimap, snap): the kit's secondary variant, tinted with the accent. */
 .fl-toggle.uid-button.is-active {
   background: var(--fl-accent-subtle);
   color: var(--uid-accent-text, var(--fl-accent));

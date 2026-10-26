@@ -80,7 +80,7 @@ Shortcuts are ignored while typing in a field.
 | `direction`, `edgeStyle` | | | as in FlowView |
 | `nodeRenderers`, `nodeIcons` | | | as in FlowView |
 | `mermaid` | `(source) => Graph` | — | enables "Import Mermaid": pass `fromMermaid` |
-| `locale`, `labels` | | `'en'` | |
+| `locale`, `labels` | | as in FlowView | |
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | the exported file name |
 | `toastProvider` | `boolean` | `true` | |

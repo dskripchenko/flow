@@ -11,18 +11,16 @@ import {
   UidBreadcrumbItem,
   UidButton,
   UidDrawer,
-  UidLocaleProvider,
   UidSpinner,
   UidToastProvider,
   UidTooltip,
-  en as uidEn,
-  ru as uidRu,
   useToast,
 } from '@dskripchenko/ui'
 import { ChevronLeft, RefreshCw } from '@dskripchenko/ui/icons'
 import { STATUS_TONES, defaultRegistry, isEnabled, statusSummary, type ElementRef, type FlowEdge, type FlowNode, type Graph, type MonitorSnapshot, type MonitorState, type NodeTypeRegistry } from '../index'
 import FlowCanvas from './FlowCanvas.vue'
 import FlowDetails from './FlowDetails.vue'
+import { useLocaleScope } from './localeScope'
 import { resolveLabels, type FlowLabels } from './labels'
 import { useMonitor, type PollContext, type PollOptions } from './useMonitor'
 
@@ -43,7 +41,7 @@ export interface NavigationLevel {
   graph: Graph
 }
 
-// The root is the kit's locale provider (a fragment): attributes go to the real root.
+// The root is a locale scope (a fragment): attributes go to the real root.
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
@@ -83,6 +81,7 @@ const props = withDefaults(
     nodeRenderers?: Record<string, Component>
     nodeIcons?: Record<string, Component>
     statusTones?: Record<string, string>
+    /** Interface language; by default the host's kit locale (a parent UidLocaleProvider), else English. Setting it also sets the kit's locale inside. */
     locale?: 'en' | 'ru' | string
     labels?: Partial<FlowLabels>
     wheel?: 'zoom' | 'pan'
@@ -110,7 +109,7 @@ const props = withDefaults(
     nodeRenderers: () => ({}),
     nodeIcons: () => ({}),
     statusTones: () => ({}),
-    locale: 'en',
+    locale: undefined,
     labels: undefined,
     wheel: 'zoom',
     minZoom: 0.15,
@@ -140,8 +139,8 @@ defineSlots<{
   empty?(): unknown
 }>()
 
-const L = computed(() => resolveLabels(props.locale, props.labels))
-const kitLocale = computed(() => (props.locale === 'ru' ? uidRu : uidEn))
+const { lang, wrapper, wrapperProps } = useLocaleScope(() => props.locale)
+const L = computed(() => resolveLabels(lang.value, props.labels))
 const toast = useToast()
 
 // ---------------------------------------------------------------------------
@@ -245,7 +244,7 @@ const updatedText = computed(() => {
 })
 const updatedExact = computed(() => {
   const t = monitor.state.value?.updatedAt ?? monitor.state.value?.receivedAt
-  return t ? new Date(t).toLocaleString(props.locale) : ''
+  return t ? new Date(t).toLocaleString(lang.value) : ''
 })
 
 // ---------------------------------------------------------------------------
@@ -349,12 +348,15 @@ defineExpose({
 </script>
 
 <template>
-  <UidLocaleProvider :locale="kitLocale">
+  <component
+    :is="wrapper"
+    v-bind="wrapperProps"
+  >
     <div
       v-bind="$attrs"
       class="fl-view"
       :class="{ 'is-monitoring': monitoring }"
-      :lang="locale"
+      :lang="lang"
     >
       <FlowCanvas
         ref="canvas"
@@ -554,7 +556,7 @@ defineExpose({
           :toggleable="toggleable"
           :drillable="selectedRef.kind === 'node' && canEnter(selectedElement as FlowNode)"
           :status-tones="statusTones"
-          :locale="locale"
+          :locale="lang"
           @toggle="(v: boolean) => toggle({ kind: selectedRef!.kind as 'node', id: selectedRef!.id, enabled: v })"
           @enter="enter(selectedRef!.id)"
         >
@@ -569,5 +571,5 @@ defineExpose({
       </UidDrawer>
       <UidToastProvider v-if="toastProvider" />
     </div>
-  </UidLocaleProvider>
+  </component>
 </template>

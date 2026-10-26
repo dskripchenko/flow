@@ -86,7 +86,7 @@ function onChange(e: ChangeEvent) {
 | `direction`, `edgeStyle` | | | как во FlowView |
 | `nodeRenderers`, `nodeIcons` | | | как во FlowView |
 | `mermaid` | `(source) => Graph` | — | включает «Импорт Mermaid»: передайте `fromMermaid` |
-| `locale`, `labels` | | `'en'` | |
+| `locale`, `labels` | | как во FlowView | |
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | имя экспортируемого файла |
 | `toastProvider` | `boolean` | `true` | |

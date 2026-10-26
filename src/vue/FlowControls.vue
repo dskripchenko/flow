@@ -79,7 +79,7 @@ const emit = defineEmits<{
     >
       <UidButton
         size="sm"
-        variant="ghost"
+        :variant="minimap ? 'secondary' : 'ghost'"
         :icon="MapIcon"
         :aria-label="labels.minimap"
         :aria-pressed="minimap"

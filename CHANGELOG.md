@@ -1,5 +1,21 @@
 # @dskripchenko/flow
 
+## 1.0.1 — 2026-10-26
+
+Requires `@dskripchenko/ui` 1.15 and drops the workarounds for what it fixed.
+
+- **Locale follows the host.** Without a `locale` prop, `FlowView` and
+  `FlowEditor` no longer wrap themselves in their own `UidLocaleProvider`:
+  the kit's locale stays the host's (e.g. laravel-admin's), and the
+  package's strings follow it (`ru-*` → Russian, else English). An explicit
+  `locale` still sets both, as before. The default of `locale` is now
+  unset instead of `'en'`.
+- **Context menus** open with the kit's `UidMenu.openAt(x, y)` at the pointer
+  (right click, and long-press on touch) instead of a hidden trigger.
+- **Toggle buttons** (minimap, snap to grid) show the pressed state with the
+  kit's `secondary` variant again.
+- Peer and dev dependency `@dskripchenko/ui` `^1.15.0`.
+
 ## 1.0.0 — 2026-10-26
 
 First release: process and state-machine graphs — a viewer with live
