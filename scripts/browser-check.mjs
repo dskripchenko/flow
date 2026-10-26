@@ -21,9 +21,10 @@ if (!process.env.FLOW_CHECK_SKIP_BUILD || !existsSync(resolve(root, 'dist/standa
 }
 
 const port = Number(process.env.FLOW_CHECK_PORT ?? 5321)
-const server = await createServer({ configFile: resolve(root, 'playground/vite.config.ts'), server: { port, strictPort: true, forwardConsole: false }, logLevel: 'warn' })
+const server = await createServer({ configFile: resolve(root, 'playground/vite.config.ts'), server: { host: '127.0.0.1', port, strictPort: true, forwardConsole: false }, logLevel: 'warn' })
 await server.listen()
-const base = `http://localhost:${port}/`
+// IPv4 on both ends: in a container `localhost` may resolve to ::1 for the server and 127.0.0.1 for fetch.
+const base = `http://127.0.0.1:${port}/`
 const browser = await chromium.launch()
 const failures = []
 const check = (name, ok, detail = '') => {
