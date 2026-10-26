@@ -29,7 +29,7 @@
 
 | 字段 | 绘制为 |
 |---|---|
-| `nodes[id].status` | `active`：强调色描边和脉动光晕；`done`：绿色描边和对勾；`error`：红色描边和填充；`waiting`：琥珀色虚线描边；`skipped`：变暗。其他字符串为中性色，除非 `statusTones` 为其指定了色调。 |
+| `nodes[id].status` | `active`：强调色描边和脉动光晕；`done`：绿色描边和对勾；`error`：红色描边和填充；`waiting`：琥珀色虚线描边；`skipped`：变暗；`unknown`（结果未知——例如副作用等待核对）：琥珀色、问号；`compensated`（已被补偿撤销）：中性色、撤销图标。其他字符串为中性色，除非 `statusTones` 为其指定了色调。 |
 | `nodes[id].count` | 节点角上的计数器 |
 | `nodes[id].badge` | 代替状态图标的角标（例如错误数） |
 | `nodes[id].message` | 详情面板中的一行文字 |

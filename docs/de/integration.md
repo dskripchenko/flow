@@ -62,7 +62,7 @@ Wurzelebene). Lehnen Sie ab (Status außerhalb von 2xx, Exception in
 Toast angezeigt. Übergeben Sie danach das aktualisierte Modell als `graph`
 (oder behalten Sie es: Der optimistische Zustand bleibt, bis sich `graph` ändert).
 
-`onToggle` ist der veraltete Name von `persistToggle` (bis 1.1): Auch er wird
+`onToggle` ist der veraltete Name von `persistToggle` (bis 2.0): Auch er wird
 einmal aufgerufen, verwenden Sie aber `persistToggle` — `onToggle` ist der
 Handler des Events `toggle`, das nach Abschluss der Speicherfunktion kommt.
 

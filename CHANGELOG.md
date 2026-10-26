@@ -1,5 +1,44 @@
 # @dskripchenko/flow
 
+## 1.1.0 — 2026-10-26
+
+Statechart building blocks. Everything is additive: graphs and snapshots from
+1.0 parse, validate and draw as before.
+
+### Added
+- **`parallel` node type** — a state with concurrent regions. Its regions are
+  the top-level groups of its inline `subgraph`: the node shows one compartment
+  per region under its label, with dashed dividers, and drilling in draws the
+  groups as region lanes. New node field **`join: 'all' | 'any'`**, shown on the
+  node's top edge and in the navigation bar inside it. `regionsOf(node)` reads
+  the regions.
+- **`timer` and `wait` node types** — intermediate events (a double circle with a
+  stopwatch / an hourglass), label under the shape.
+- **`any` node type** — "any state": its edges apply from every state of the
+  graph. A source for reachability, but not the process's start
+  (`missing-start` still asks for one); an edge into it is a warning.
+- **Edge `trigger: 'timer' | 'event'`** — an icon on the edge label instead of
+  an emoji in the text; with no label the edge shows the icon alone.
+- **Statuses `unknown`** (amber, a question mark — the outcome is not known)
+  **and `compensated`** (neutral, an undo glyph) in the default tones, icons
+  and labels: no `statusTones` needed.
+- Editor: a *Join* field for parallel nodes, a *Trigger* field for edges; the
+  new types in the palette.
+- `NodeTypeDef.regions` and `NodeTypeDef.anyState` for custom types; shapes
+  `event` and `any`; `NavigationLevel.type` / `.join`.
+- JSON schemas: `node.join`, `edge.trigger`, the new types in `node.type`'s
+  description; the snapshot's `status` lists `unknown` and `compensated`
+  (still any string).
+
+### Fixed
+- Status chips: the tone fill no longer leaks into the icon's own circles, and
+  an amber chip has a dark glyph — the `waiting` clock was unreadable in the
+  dark theme.
+
+### Not changed
+- The deprecated `onToggle`-as-persist-function alias from 1.0.2 stays: its
+  removal would break hosts in a minor release; it moves to 2.0.
+
 ## 1.0.2 — 2026-10-26
 
 - **`FlowView`: the persist function is now `persistToggle`.** The old prop

@@ -90,6 +90,7 @@ function node(v: unknown, at: string): FlowNode {
   }
   const p = ports(v.ports, `${at}/ports`)
   if (p) n.ports = p
+  if (v.join === 'all' || v.join === 'any') n.join = v.join
   return n
 }
 
@@ -103,6 +104,7 @@ function edge(v: unknown, at: string): FlowEdge {
   const enabled = bool(v, 'enabled', at)
   if (enabled !== undefined) e.enabled = enabled
   if (v.kind === 'association' || v.kind === 'transition') e.kind = v.kind
+  if (v.trigger === 'timer' || v.trigger === 'event') e.trigger = v.trigger
   const d = data(v.data, `${at}/data`)
   if (d) e.data = d
   return e

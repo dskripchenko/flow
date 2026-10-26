@@ -30,7 +30,7 @@ Jedes Feld ist optional.
 
 | Feld | Darstellung |
 |---|---|
-| `nodes[id].status` | `active`: Akzent-Umriss und pulsierender Halo; `done`: grüner Umriss und ein Häkchen; `error`: roter Umriss und rote Füllung; `waiting`: bernsteinfarbener gestrichelter Umriss; `skipped`: abgeblendet. Andere Zeichenketten sind neutral, sofern `statusTones` sie nicht zuordnet. |
+| `nodes[id].status` | `active`: Akzent-Umriss und pulsierender Halo; `done`: grüner Umriss und ein Häkchen; `error`: roter Umriss und rote Füllung; `waiting`: bernsteinfarbener gestrichelter Umriss; `skipped`: abgeblendet; `unknown` (Ergebnis unbekannt – z. B. ein Seiteneffekt wartet auf Abgleich): bernsteinfarben, ein Fragezeichen; `compensated` (durch Kompensation rückgängig gemacht): neutral, ein Rückgängig-Symbol. Andere Zeichenketten sind neutral, sofern `statusTones` sie nicht zuordnet. |
 | `nodes[id].count` | ein Zähler an der Ecke des Knotens |
 | `nodes[id].badge` | ein Eck-Badge statt des Status-Icons (z. B. eine Fehleranzahl) |
 | `nodes[id].message` | eine Zeile im Detailbereich |

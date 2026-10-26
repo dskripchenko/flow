@@ -23,7 +23,7 @@ interface Graph {
 ```ts
 interface FlowNode {
   id: string
-  type: string                 // start | end | state | task | decision | subprocess | note | custom
+  type: string                 // start | end | state | task | decision | subprocess | parallel | timer | wait | any | note | custom
   label?: string
   description?: string         // вторая строка под подписью
   position?: { x: number; y: number } // центр; если не задан, узел раскладывается автоматически
@@ -32,6 +32,7 @@ interface FlowNode {
   enabled?: boolean            // false: рисуется приглушённым и зачёркнутым
   subgraph?: string | Graph    // встроенный граф или ссылка: в узел можно провалиться
   ports?: Port[]               // переопределяет порты типа
+  join?: 'all' | 'any'         // parallel: завершён, когда завершены все регионы или любой
 }
 ```
 
@@ -43,7 +44,17 @@ interface FlowNode {
 | `task` | прямоугольник с плашкой-иконкой | |
 | `decision` | ромб | |
 | `subprocess` | прямоугольник с маркером подпроцесса | можно провалиться |
+| `parallel` | прямоугольник с отсеками регионов | можно провалиться; регионы — группы верхнего уровня встроенного подграфа; `join` на верхней кромке |
+| `timer` | двойной круг с секундомером | промежуточное событие: ожидание таймера; подпись под ним |
+| `wait` | двойной круг с песочными часами | промежуточное событие: ожидание ввода или сообщения; подпись под ним |
+| `any` | пунктирный круг со звёздочкой | «любое состояние»: его рёбра действуют из каждого состояния графа; источник, но не start |
 | `note` | лист с загнутым углом | аннотация: не участвует в проверках потока |
+
+Узел `parallel` — состояние с параллельными регионами. Дайте ему встроенный
+`subgraph`, у которого группы верхнего уровня (`groups`) — регионы, у каждого
+свой start: узел показывает по отсеку на регион, а при проваливании группы
+рисуются дорожками регионов, и правило завершения (`все регионы` / `любой
+регион`) видно в панели навигации. Со ссылкой на подграф узел рисуется без отсеков.
 
 ## Переходы
 
@@ -58,6 +69,7 @@ interface FlowEdge {
   condition?: string           // условие; показывается, если нет подписи
   enabled?: boolean
   kind?: 'transition' | 'association' // association: пунктир без стрелки (заметка к своему узлу)
+  trigger?: 'timer' | 'event' // что запускает переход: иконка в подписи ребра (с текстом или без)
   data?: Record<string, DataValue>
 }
 ```
@@ -124,10 +136,10 @@ const registry = createRegistry({
 ```
 
 Определение типа (`NodeTypeDef`): `title`, `shape` (`rect`, `rounded`,
-`circle`, `ring`, `diamond`, `note`, `pill`), фиксированный `size` или
+`circle`, `ring`, `diamond`, `note`, `pill`, `event`, `any`), фиксированный `size` или
 `minWidth`/`maxWidth`/`height`, `ports`, `icon` (имя из `NODE_ICONS` или
 компонент через свойство `nodeIcons`), `labelOutside`, `noIncoming`,
-`noOutgoing`, `annotation`, `drillable` и `locked` (редактор не даёт менять и
+`noOutgoing`, `annotation`, `drillable`, `regions` (отсеки и join, как у `parallel`), `anyState` (источник, который не считается start, как `any`) и `locked` (редактор не даёт менять и
 удалять такие узлы). Передайте реестр в компоненты и в
 `validateGraph` / `layoutGraph`.
 
@@ -149,7 +161,7 @@ const issues = validateGraph(graph, { registry })
 | `unknown-type` | warning | типа нет в реестре (рисуется как state) |
 | `missing-start`, `missing-end` | warning | отключается через `requireStartEnd: false` |
 | `start-incoming`, `end-outgoing` | warning | переход в start или из end |
-| `unreachable` | warning | узел недостижим ни из одного start |
+| `unreachable` | warning | узел недостижим ни из одного start или узла «любое состояние» |
 | `dead-end` | warning | шаг, из которого нет выхода |
 | `empty-label` | warning | шаг без подписи |
 

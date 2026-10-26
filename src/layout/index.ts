@@ -9,7 +9,7 @@ import { approximateMeasurer, wrapText, type FontSpec, type TextMeasurer } from 
 import { isBehind, routeChannels, type BackEdgeInput } from './channels'
 import { placeLabels } from './labels'
 import { facingSide, midpoint, route, sidePoint, spreadable, bezierPoint, orthogonalThrough, pointAtMain, segmentHitsBox, type Anchor, type NodeBox, type Routing } from './route'
-import type { FlowEdge, FlowNode, Graph, Point, PortSide } from '../model/types'
+import { regionsOf, type FlowEdge, type FlowNode, type Graph, type Point, type PortSide } from '../model/types'
 
 export type { NodeBox, Anchor, Routing } from './route'
 
@@ -40,11 +40,19 @@ export const DESC_LINE = 15
 export const EDGE_LINE = 15
 const PAD_X = 16
 const ICON_ROOM = 30
+/** A `parallel` node's strip of region compartments. */
+export const REGION_STRIP = 26
+export const REGION_FONT: FontSpec = { size: 11, weight: 500 }
+const REGION_MAX = 120
+/** Room for the trigger icon on an edge label. */
+export const TRIGGER_ROOM = 16
 
 export interface NodeGeometry extends NodeBox {
   id: string
   lines: string[]
   descriptionLines: string[]
+  /** A `parallel` node's region compartments, left to right: label and width. */
+  regions?: { id: string; label: string; width: number }[]
 }
 
 export interface EdgeGeometry {
@@ -94,8 +102,25 @@ export function measureNode(node: FlowNode, registry: NodeTypeRegistry, measure:
     ? Math.min(max, Math.max(min, textWidth / 0.62 + 8))
     : Math.min(max, Math.max(min, Math.ceil(textWidth + PAD_X * 2 + icon + 10)))
   const textHeight = lines.length * LINE + descriptionLines.length * DESC_LINE
-  const height = Math.max(def.height ?? 44, diamond ? textHeight * 2 + 20 : textHeight + 24)
-  return { id: node.id, width: Math.round(width), height: Math.round(height), lines, descriptionLines }
+  let height = Math.max(def.height ?? 44, diamond ? textHeight * 2 + 20 : textHeight + 24)
+  const geometry: Omit<NodeGeometry, 'x' | 'y'> = { id: node.id, width: Math.round(width), height: Math.round(height), lines, descriptionLines }
+  const regions = def.regions ? regionsOf(node) : []
+  if (regions.length > 0) {
+    // One compartment per region under the label, side by side; the node
+    // widens (past its max) so each region keeps a readable name.
+    const cells = regions.map((g) => {
+      const label = wrapText(g.label ?? g.id, REGION_MAX - 16, REGION_FONT, measure, 1)[0] ?? ''
+      return { id: g.id, label, width: Math.ceil(Math.max(56, measure(label, REGION_FONT) + 16)) }
+    })
+    const needed = cells.reduce((sum, c) => sum + c.width, 0) + 16
+    const finalWidth = Math.max(geometry.width, needed)
+    // Spread the spare width over the cells.
+    const spare = finalWidth - needed
+    for (const c of cells) c.width += spare / cells.length
+    height += REGION_STRIP
+    return { ...geometry, width: Math.round(finalWidth), height: Math.round(height), regions: cells }
+  }
+  return geometry
 }
 
 function edgeLabelText(e: FlowEdge): string {
@@ -104,9 +129,11 @@ function edgeLabelText(e: FlowEdge): string {
 
 export function measureEdgeLabel(e: FlowEdge, measure: TextMeasurer, extra = 0): { width: number; height: number; lines: string[] } | undefined {
   const text = edgeLabelText(e)
-  if (!text) return undefined
+  const icon = e.trigger ? TRIGGER_ROOM : 0
+  // A trigger without words is an icon-only label.
+  if (!text) return icon ? { width: 26 + extra, height: EDGE_LINE + 8, lines: [] } : undefined
   const lines = wrapText(text, 160, EDGE_FONT, measure, 2)
-  const width = Math.max(...lines.map((l) => measure(l, EDGE_FONT))) + 16 + extra
+  const width = Math.max(...lines.map((l) => measure(l, EDGE_FONT))) + 16 + icon + extra
   return { width: Math.ceil(width), height: lines.length * EDGE_LINE + 8, lines }
 }
 

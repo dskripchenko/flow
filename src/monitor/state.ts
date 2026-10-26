@@ -142,6 +142,10 @@ export const STATUS_TONES: Readonly<Record<string, 'accent' | 'success' | 'dange
   error: 'danger',
   waiting: 'warning',
   skipped: 'neutral',
+  /** The outcome of a step is not known (e.g. a side effect awaiting reconciliation). */
+  unknown: 'warning',
+  /** The step's effect was undone by compensation. */
+  compensated: 'neutral',
 })
 
 /** Counts of nodes by status: the summary line of a monitor. */

@@ -6,7 +6,18 @@
 import type { FlowNode, Port } from './types'
 
 /** Outlines the built-in renderer can draw. */
-export type NodeShape = 'rect' | 'rounded' | 'circle' | 'ring' | 'diamond' | 'note' | 'pill'
+export type NodeShape =
+  | 'rect'
+  | 'rounded'
+  | 'circle'
+  | 'ring'
+  | 'diamond'
+  | 'note'
+  | 'pill'
+  /** A double circle: an intermediate event (timer, wait). */
+  | 'event'
+  /** A dashed circle: the "any state" source. */
+  | 'any'
 
 export interface NodeTypeDef {
   /** The type's name in the UI (palette, details). */
@@ -33,6 +44,13 @@ export interface NodeTypeDef {
   locked?: boolean
   /** The node can be drilled into (gets a "subgraph" field in the editor). */
   drillable?: boolean
+  /** The node shows its inline subgraph's regions (top-level groups) and its `join` (`parallel`). */
+  regions?: boolean
+  /**
+   * Edges from the node apply from every state of its graph (`any`): it is a
+   * source like a start, but does not count as the process's start.
+   */
+  anyState?: boolean
 }
 
 export type NodeTypeRegistry = ReadonlyMap<string, NodeTypeDef>
@@ -44,6 +62,10 @@ export const BUILTIN_TYPES: Readonly<Record<string, NodeTypeDef>> = Object.freez
   task: { title: 'Task', shape: 'rect', minWidth: 176, maxWidth: 260, height: 60, icon: 'task' },
   decision: { title: 'Decision', shape: 'diamond', minWidth: 124, maxWidth: 200, height: 80, icon: 'decision' },
   subprocess: { title: 'Sub-process', shape: 'rect', minWidth: 192, maxWidth: 260, height: 64, icon: 'subprocess', drillable: true },
+  parallel: { title: 'Parallel', shape: 'rect', minWidth: 208, maxWidth: 320, height: 64, icon: 'parallel', drillable: true, regions: true },
+  timer: { title: 'Timer', shape: 'event', size: { width: 40, height: 40 }, icon: 'timer', labelOutside: true },
+  wait: { title: 'Wait', shape: 'event', size: { width: 40, height: 40 }, icon: 'wait', labelOutside: true },
+  any: { title: 'Any state', shape: 'any', size: { width: 32, height: 32 }, icon: 'any', labelOutside: true, noIncoming: true, anyState: true },
   note: { title: 'Note', shape: 'note', minWidth: 140, maxWidth: 240, height: 48, annotation: true },
 })
 

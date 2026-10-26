@@ -100,7 +100,9 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
   }
 
   const flowNodes = graph.nodes.filter((n) => !typeOf(registry, n.type).annotation)
-  const starts = flowNodes.filter((n) => typeOf(registry, n.type).noIncoming)
+  // An "any state" node is a source but not the process's start.
+  const starts = flowNodes.filter((n) => typeOf(registry, n.type).noIncoming && !typeOf(registry, n.type).anyState)
+  const anyStates = flowNodes.filter((n) => typeOf(registry, n.type).anyState)
   const ends = flowNodes.filter((n) => typeOf(registry, n.type).noOutgoing)
   const requireStartEnd = options.requireStartEnd ?? true
   if (requireStartEnd && flowNodes.length > 0) {
@@ -110,7 +112,7 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
   for (const e of live) {
     const to = nodes.get(e.to)
     const from = nodes.get(e.from)
-    if (to && typeOf(registry, to.type).noIncoming) add('warning', 'start-incoming', `Edge "${e.id}" leads into the start node "${to.id}"`, 'edge', e.id)
+    if (to && typeOf(registry, to.type).noIncoming) add('warning', 'start-incoming', `Edge "${e.id}" leads into the ${typeOf(registry, to.type).anyState ? '"any state"' : 'start'} node "${to.id}"`, 'edge', e.id)
     if (from && typeOf(registry, from.type).noOutgoing) add('warning', 'end-outgoing', `Edge "${e.id}" leaves the end node "${from.id}"`, 'edge', e.id)
   }
 
@@ -124,7 +126,7 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
       out.set(e.from, list)
     }
     const reached = new Set<string>()
-    const queue = starts.map((s) => s.id)
+    const queue = [...starts, ...anyStates].map((s) => s.id)
     for (const id of queue) reached.add(id)
     while (queue.length) {
       const id = queue.shift()!

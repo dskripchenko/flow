@@ -2,13 +2,15 @@
 /**
  * The playground: the order process with live monitoring from the fake
  * backend (?view=monitor), the editor (?view=editor), a 500-node graph
- * (?view=large), and an empty graph (?view=empty). ?theme=dark, ?locale=ru.
+ * (?view=large), an empty graph (?view=empty) and a statechart with the 1.1
+ * types (?view=statechart). ?theme=dark, ?locale=ru.
  */
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { FlowView, type ToggleChange } from '../src/vue'
 import { emptyGraph, type Graph, type MonitorSnapshot } from '../src/index'
 import { orderProcess } from '../tests/fixtures/order'
 import { largeGraph } from '../tests/fixtures/large'
+import { claimProcess } from '../tests/fixtures/statechart'
 
 const FlowEditorDemo = defineAsyncComponent(() => import('./EditorDemo.vue'))
 
@@ -19,7 +21,18 @@ const interval = Number(params.get('interval') ?? 2000)
 const staleAfter = params.get('stale') ? Number(params.get('stale')) : undefined
 const edgeStyle = params.get('edges') === 'smooth' ? 'smooth' : 'orthogonal'
 const direction = (params.get('direction') as 'TB' | 'LR' | null) ?? undefined
-const graph = ref<Graph>(view === 'large' ? largeGraph(Number(params.get('n') ?? 500)) : view === 'empty' ? emptyGraph() : orderProcess)
+const graph = ref<Graph>(view === 'large' ? largeGraph(Number(params.get('n') ?? 500)) : view === 'empty' ? emptyGraph() : view === 'statechart' ? claimProcess : orderProcess)
+
+/** A run of the claim process: one effect of unknown outcome, one compensated. */
+const claimState: MonitorSnapshot = {
+  nodes: {
+    start: { status: 'done' },
+    filing: { status: 'compensated', count: 3 },
+    review: { status: 'unknown', count: 12, message: 'Outcome unknown: ChargeDeposit' },
+    reminder: { status: 'waiting', count: 4 },
+  },
+  edges: { e1: { count: 19, traversed: true }, e2: { count: 16, traversed: true } },
+}
 
 const events = ref<string[]>([])
 function log(line: string): void {
@@ -57,6 +70,7 @@ async function persistToggle(change: ToggleChange): Promise<void> {
       class="pg-flow"
       :graph="graph"
       :poll="poll"
+      :state="view === 'statechart' ? claimState : undefined"
       :stale-after-ms="staleAfter"
       :locale="locale"
       :edge-style="edgeStyle"
