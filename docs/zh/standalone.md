@@ -19,7 +19,7 @@
     theme: 'system', // 'light' | 'dark' | 'system'；不设置则不改动 <html data-theme>
     locale: 'en',
     toggleable: true,
-    onToggle: (change) => fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) }).then((r) => {
+    persistToggle: (change) => fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) }).then((r) => {
       if (!r.ok) throw new Error('Refused')
     }),
     poll: {

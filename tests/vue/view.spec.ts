@@ -93,12 +93,91 @@ describe('FlowView', () => {
     expect(sw.checked).toBe(true)
     sw.click()
     await flushPromises()
+    expect(onToggle).toHaveBeenCalledTimes(1)
     expect(onToggle).toHaveBeenCalledWith({ kind: 'node', id: 'cancelled', enabled: false, path: [] })
     expect(w.find('[data-node-id="cancelled"] .fl-node').classes()).toContain('is-disabled')
     reject(new Error('policy'))
     await flushPromises()
     expect(w.find('[data-node-id="cancelled"] .fl-node').classes()).not.toContain('is-disabled')
     expect(w.emitted('toggle-error')).toHaveLength(1)
+  })
+
+  /** Opens the details of `cancelled` and flips its switch. */
+  async function flip(w: ReturnType<typeof view>) {
+    await tap(w, '[data-node-id="cancelled"]')
+    await flushPromises()
+    document.body.querySelector<HTMLInputElement>('.fl-details__toggle input')!.click()
+    await flushPromises()
+  }
+  const change = { kind: 'node', id: 'cancelled', enabled: false, path: [] }
+
+  it('calls persistToggle once and emits toggle once, after it resolves', async () => {
+    let resolve: () => void = () => {}
+    const persistToggle = vi.fn(() => new Promise<void>((r) => { resolve = r }))
+    const w = view({ toggleable: true, persistToggle })
+    await flip(w)
+    expect(persistToggle).toHaveBeenCalledTimes(1)
+    expect(persistToggle).toHaveBeenCalledWith(change)
+    expect(w.emitted('toggle')).toBeUndefined()
+    resolve()
+    await flushPromises()
+    expect(w.emitted('toggle')).toEqual([[change, { ok: true }]])
+  })
+
+  it('calls the deprecated onToggle alias exactly once', async () => {
+    const onToggle = vi.fn(async () => {})
+    const w = view({ toggleable: true, onToggle })
+    await flip(w)
+    await flushPromises()
+    expect(onToggle).toHaveBeenCalledTimes(1)
+    expect(onToggle).toHaveBeenCalledWith(change)
+    expect(w.find('[data-node-id="cancelled"] .fl-node').classes()).toContain('is-disabled')
+  })
+
+  it('calls a toggle listener and persistToggle once each', async () => {
+    const order: string[] = []
+    const persistToggle = vi.fn(async () => void order.push('persist'))
+    const listener = vi.fn(() => void order.push('listener'))
+    const w = view({ toggleable: true, persistToggle, onToggle: listener })
+    await flip(w)
+    await flushPromises()
+    expect(persistToggle).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledWith(change, { ok: true })
+    expect(order).toEqual(['persist', 'listener'])
+  })
+
+  it('emits toggle at once without a persist function', async () => {
+    const w = view({ toggleable: true })
+    await flip(w)
+    expect(w.emitted('toggle')).toEqual([[change, { ok: true }]])
+  })
+
+  it.each([
+    ['persistToggle', 'persistToggle'],
+    ['the onToggle alias', 'onToggle'],
+  ])('rolls back a rejection of %s without an unhandled error', async (_, prop) => {
+    const unhandled = vi.fn()
+    process.on('unhandledRejection', unhandled)
+    const errorHandler = vi.fn()
+    const error = new Error('policy')
+    const persist = vi.fn(async () => { throw error })
+    const w = mount(FlowView, {
+      props: { graph: orderProcess, toastProvider: false, toggleable: true, [prop]: persist },
+      attachTo: document.body,
+      global: { config: { errorHandler } },
+    })
+    wrappers.push(w)
+    await flip(w)
+    await flushPromises()
+    await new Promise((r) => setTimeout(r, 0))
+    process.off('unhandledRejection', unhandled)
+    expect(persist).toHaveBeenCalledTimes(1)
+    expect(w.find('[data-node-id="cancelled"] .fl-node').classes()).not.toContain('is-disabled')
+    expect(w.emitted('toggle-error')).toEqual([[change, error]])
+    if (prop === 'persistToggle') expect(w.emitted('toggle')).toEqual([[change, { ok: false, error, rolledBack: true }]])
+    expect(errorHandler).not.toHaveBeenCalled()
+    expect(unhandled).not.toHaveBeenCalled()
   })
 
   it('drills into an inline sub-process and back', async () => {

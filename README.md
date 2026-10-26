@@ -22,7 +22,7 @@ const poll = {
 </script>
 
 <template>
-  <FlowView :graph="orderProcess" :poll="poll" toggleable :on-toggle="saveToggle" style="height: 600px" />
+  <FlowView :graph="orderProcess" :poll="poll" toggleable :persist-toggle="saveToggle" style="height: 600px" />
 </template>
 ```
 

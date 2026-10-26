@@ -32,6 +32,18 @@ export interface ToggleChange {
   path: string[]
 }
 
+/** How a toggle ended, the second argument of the `toggle` event. */
+export type ToggleResult =
+  | { ok: true }
+  /**
+   * The persist function rejected. `rolledBack` is false when a newer toggle
+   * of the same element was already in flight (that one decides the state).
+   */
+  | { ok: false; error: unknown; rolledBack: boolean }
+
+/** Persists a toggle; a rejection rolls it back. */
+export type PersistToggle = (change: ToggleChange) => Promise<unknown> | unknown
+
 export interface NavigationLevel {
   /** The sub-process node entered (empty for the root). */
   nodeId: string
@@ -64,7 +76,15 @@ const props = withDefaults(
     staleAfterMs?: number
     toggleable?: boolean
     /** Persists a toggle; a rejection rolls it back and shows an error. */
-    onToggle?: (change: ToggleChange) => Promise<unknown> | unknown
+    persistToggle?: PersistToggle
+    /**
+     * @deprecated since 1.0.2, removed in 1.1: use `persistToggle`. Without
+     * `persistToggle`, a function passed as `onToggle` (the same vnode prop as
+     * an `@toggle` listener) is the persist function and is called once per
+     * switch; the `toggle` event is then not emitted, since it would call it
+     * again.
+     */
+    onToggle?: PersistToggle | PersistToggle[]
     /** Graphs for string `subgraph` references. */
     subgraphs?: Record<string, Graph>
     /** Loads a string `subgraph` reference not found in `subgraphs`. */
@@ -97,6 +117,7 @@ const props = withDefaults(
     poll: undefined,
     pollParams: undefined,
     staleAfterMs: undefined,
+    persistToggle: undefined,
     onToggle: undefined,
     subgraphs: () => ({}),
     loadSubgraph: undefined,
@@ -121,7 +142,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   select: [element: (ElementRef & { element: FlowNode | FlowEdge; path: string[] }) | null]
-  toggle: [change: ToggleChange]
+  /** Once per switch: after the persist function settles (at once without one). */
+  toggle: [change: ToggleChange, result: ToggleResult]
   'toggle-error': [change: ToggleChange, error: unknown]
   navigate: [stack: NavigationLevel[]]
   'poll-error': [error: unknown]
@@ -320,19 +342,36 @@ async function toggle(change: { kind: 'node' | 'edge'; id: string; enabled: bool
     overrides.value = next
   }
   set(change.enabled)
-  emit('toggle', full)
-  if (!props.onToggle) return
+  // Vue's emit('toggle') calls the vnode's `onToggle` too, so the deprecated
+  // alias is called directly and the event is skipped; with `persistToggle`
+  // (or no persist function) the event fires once, after the outcome is known.
+  const alias = props.persistToggle ? undefined : props.onToggle
+  const persist: PersistToggle | undefined =
+    props.persistToggle ?? (alias ? (c) => (Array.isArray(alias) ? Promise.all(alias.map((f) => f(c))) : alias(c)) : undefined)
+  const done = (result: ToggleResult) => {
+    if (!alias) emit('toggle', full, result)
+  }
+  if (!persist) {
+    done({ ok: true })
+    return
+  }
   // The last toggle of an element wins; an older reply must not roll back a newer one.
   const ticket = (pending.get(key) ?? 0) + 1
   pending.set(key, ticket)
   try {
-    await props.onToggle(full)
+    await persist(full)
   } catch (error) {
-    if (pending.get(key) !== ticket) return
+    if (pending.get(key) !== ticket) {
+      done({ ok: false, error, rolledBack: false })
+      return
+    }
     set(before)
     toast.error({ title: L.value.toggleFailed, message: error instanceof Error ? error.message : String(error) })
+    done({ ok: false, error, rolledBack: true })
     emit('toggle-error', full, error)
+    return
   }
+  done({ ok: true })
 }
 
 const crumbs = computed(() => [{ label: props.graph.meta?.title ?? L.value.root, depth: 0 }, ...stack.value.map((l, i) => ({ label: l.label, depth: i + 1 }))])

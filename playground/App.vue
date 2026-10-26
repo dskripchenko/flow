@@ -39,7 +39,7 @@ const poll = computed(() =>
     : undefined,
 )
 
-async function onToggle(change: ToggleChange): Promise<void> {
+async function persistToggle(change: ToggleChange): Promise<void> {
   const r = await fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) })
   if (!r.ok) throw new Error((await r.json()).error)
   log(`toggle ${change.id} → ${change.enabled}`)
@@ -62,7 +62,7 @@ async function onToggle(change: ToggleChange): Promise<void> {
       :edge-style="edgeStyle"
       :direction="direction"
       toggleable
-      :on-toggle="onToggle"
+      :persist-toggle="persistToggle"
       @select="(s) => log(s ? `select ${s.kind} ${s.id}` : 'select none')"
       @navigate="(s) => log(`navigate ${s.map((l) => l.nodeId).join(' / ') || 'root'}`)"
     />

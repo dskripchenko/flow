@@ -24,7 +24,8 @@ switches, drill-down into sub-processes and a details drawer.
 | `pollParams` | `unknown` | — | handed to `poll.fetch` as `context.params` (an instance id, a filter); a change restarts polling at once |
 | `staleAfterMs` | `number` | 3 intervals, ≥ 15 s | the stale warning |
 | `toggleable` | `boolean` | `false` | enable/disable switches on hover and in the drawer |
-| `onToggle` | `(change) => Promise \| void` | — | persists a toggle; a rejection rolls it back with an error toast |
+| `persistToggle` | `(change) => Promise \| void` | — | persists a toggle; a rejection rolls it back with an error toast |
+| `onToggle` | `(change) => Promise \| void` | — | **deprecated** alias of `persistToggle`, removed in 1.1 (see below) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | graphs for string `subgraph` references |
 | `loadSubgraph` | `(ref, node) => Promise<Graph>` | — | loads a reference not in `subgraphs` |
 | `details` | `boolean` | `true` | the built-in details drawer |
@@ -48,8 +49,8 @@ switches, drill-down into sub-processes and a details drawer.
 | Event | Payload |
 |---|---|
 | `select` | `{ kind, id, element, path } \| null` |
-| `toggle` | `{ kind: 'node' \| 'edge', id, enabled, path }` — emitted optimistically |
-| `toggle-error` | `(change, error)` — `onToggle` rejected; the change is rolled back |
+| `toggle` | `(change, result)` — once per switch, after `persistToggle` settles (at once without one); `result` is `{ ok: true }` or `{ ok: false, error, rolledBack }` |
+| `toggle-error` | `(change, error)` — `persistToggle` rejected; the change is rolled back |
 | `navigate` | `NavigationLevel[]` — the sub-processes entered, root first |
 | `poll-error` | `error` |
 
@@ -72,11 +73,22 @@ the details drawer has one too. The change is applied at once (dimmed, struck
 through; edges of a disabled node are dimmed with it) and `onToggle` is called:
 
 ```ts
-async function onToggle({ kind, id, enabled, path }: ToggleChange) {
+async function persistToggle({ kind, id, enabled, path }: ToggleChange) {
   const r = await fetch(`/api/process/${kind}s/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) })
   if (!r.ok) throw new Error((await r.json()).message) // rolled back, toast with the message
 }
 ```
+
+Bind it as `:persist-toggle="persistToggle"`. It is called exactly once per
+switch; the `toggle` event follows once it settles.
+
+> **Deprecated: `onToggle`.** Before 1.0.2 the persist function was the
+> `onToggle` prop, which is also the handler Vue calls for the `toggle` event,
+> so it ran twice per switch. Until 1.1, a function passed as `onToggle` (or
+> as an `@toggle` listener) without `persistToggle` is still treated as the
+> persist function, called once, with the rollback on rejection; the `toggle`
+> event is then not emitted. Switch to `persistToggle`; from 1.1 `onToggle`
+> is just the `toggle` event listener.
 
 The override is kept until the `graph` prop changes (pass the updated model
 back) — then the model decides.

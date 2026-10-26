@@ -45,16 +45,20 @@ laid out on the client; the first edit in the editor stores positions.
 
 ## Toggle
 
-The viewer calls `onToggle(change)`; send it to the server:
+The viewer calls `persistToggle(change)` once per switch; send it to the server:
 
 ```json
 { "kind": "node", "id": "cancelled", "enabled": false, "path": [] }
 ```
 
 `path` is the sub-process node ids from the root (empty at the root). Reject
-(non-2xx, throw in `onToggle`) to roll the switch back; the error message is
+(non-2xx, throw in `persistToggle`) to roll the switch back; the error message is
 shown in a toast. Then pass the updated model as `graph` (or keep it: the
 optimistic state stays until `graph` changes).
+
+`onToggle` is the deprecated name of `persistToggle` (until 1.1): it is called
+once as well, but use `persistToggle` — `onToggle` is the handler of the
+`toggle` event, which fires after the persist function settles.
 
 ## Sub-processes
 
