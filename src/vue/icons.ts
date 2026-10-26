@@ -1,6 +1,6 @@
 /**
  * Icon names used by node types and statuses, mapped to the kit's icon set
- * (lucide, through `@dskripchenko/ui/icons`). A custom type names one of
+ * (lucide, bundled into the build). A custom type names one of
  * these, or passes its own component through `nodeIcons`.
  */
 import type { Component } from 'vue'
@@ -25,7 +25,7 @@ import {
   Undo2,
   Workflow,
   Zap,
-} from '@dskripchenko/ui/icons'
+} from 'lucide-vue-next'
 
 export const NODE_ICONS: Readonly<Record<string, Component>> = {
   play: Play,

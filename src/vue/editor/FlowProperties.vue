@@ -20,7 +20,7 @@ import {
   Trash2,
   X,
   ArrowRight,
-} from '@dskripchenko/ui/icons'
+} from 'lucide-vue-next'
 import { isEnabled, type Alignment, type Command, type DataValue, type FlowEdge, type FlowNode, type Graph, type NodeTypeRegistry } from '../../index'
 import type { FlowLabels } from '../labels'
 import { NODE_ICONS } from '../icons'

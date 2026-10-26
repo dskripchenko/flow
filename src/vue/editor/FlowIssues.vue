@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Validation issues; pressing one selects and shows its element. */
 import { UidButton } from '@dskripchenko/ui'
-import { CircleAlert, CircleCheck, TriangleAlert } from '@dskripchenko/ui/icons'
+import { CircleAlert, CircleCheck, TriangleAlert } from 'lucide-vue-next'
 import type { Issue } from '../../index'
 import type { FlowLabels } from '../labels'
 

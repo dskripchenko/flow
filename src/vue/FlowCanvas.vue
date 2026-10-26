@@ -7,7 +7,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch, type Component } from 'vue'
 import { UidButton, UidSwitch, UidTooltip } from '@dskripchenko/ui'
-import { SquareArrowOutUpRight } from '@dskripchenko/ui/icons'
+import { SquareArrowOutUpRight } from 'lucide-vue-next'
 import {
   STATUS_TONES,
   approximateMeasurer,
