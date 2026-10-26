@@ -19,7 +19,7 @@ for a page that prefers a `<link>`). It exposes the global `DskFlow`.
     theme: 'system', // 'light' | 'dark' | 'system'; unset leaves <html data-theme> alone
     locale: 'en',
     toggleable: true,
-    onToggle: (change) => fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) }).then((r) => {
+    persistToggle: (change) => fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) }).then((r) => {
       if (!r.ok) throw new Error('Refused')
     }),
     poll: {

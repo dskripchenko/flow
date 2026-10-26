@@ -25,7 +25,8 @@ Detail-Drawer.
 | `pollParams` | `unknown` | — | wird `poll.fetch` als `context.params` übergeben (Instanz-ID, Filter); eine Änderung startet das Polling sofort neu |
 | `staleAfterMs` | `number` | 3 Intervalle, ≥ 15 s | die Veraltet-Warnung |
 | `toggleable` | `boolean` | `false` | Schalter zum Aktivieren/Deaktivieren bei Hover und im Drawer |
-| `onToggle` | `(change) => Promise \| void` | — | speichert ein Umschalten; eine Ablehnung macht es mit einem Fehler-Toast rückgängig |
+| `persistToggle` | `(change) => Promise \| void` | — | speichert ein Umschalten; eine Ablehnung macht es mit einem Fehler-Toast rückgängig |
+| `onToggle` | `(change) => Promise \| void` | — | **veraltet**: Alias von `persistToggle`, entfällt in 1.1 (siehe unten) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | Graphen für `subgraph`-Referenzen als Zeichenkette |
 | `loadSubgraph` | `(ref, node) => Promise<Graph>` | — | lädt eine Referenz, die nicht in `subgraphs` steht |
 | `details` | `boolean` | `true` | der eingebaute Detail-Drawer |
@@ -49,8 +50,8 @@ Detail-Drawer.
 | Event | Payload |
 |---|---|
 | `select` | `{ kind, id, element, path } \| null` |
-| `toggle` | `{ kind: 'node' \| 'edge', id, enabled, path }` — optimistisch ausgelöst |
-| `toggle-error` | `(change, error)` — `onToggle` hat abgelehnt; die Änderung wird rückgängig gemacht |
+| `toggle` | `(change, result)` — einmal pro Umschalten, nachdem `persistToggle` abgeschlossen ist (ohne sofort); `result` ist `{ ok: true }` oder `{ ok: false, error, rolledBack }` |
+| `toggle-error` | `(change, error)` — `persistToggle` hat abgelehnt; die Änderung wird rückgängig gemacht |
 | `navigate` | `NavigationLevel[]` — die betretenen Teilprozesse, Wurzel zuerst |
 | `poll-error` | `error` |
 
@@ -71,14 +72,26 @@ Detail-Drawer.
 Mit `toggleable` zeigt das Überfahren eines Knotens oder einer Kante einen
 Switch des Kits darüber an, und auch der Detail-Drawer hat einen. Die Änderung
 wird sofort angewendet (abgeblendet, durchgestrichen; die Kanten eines
-deaktivierten Knotens werden mit abgeblendet) und `onToggle` wird aufgerufen:
+deaktivierten Knotens werden mit abgeblendet) und `persistToggle` wird aufgerufen:
 
 ```ts
-async function onToggle({ kind, id, enabled, path }: ToggleChange) {
+async function persistToggle({ kind, id, enabled, path }: ToggleChange) {
   const r = await fetch(`/api/process/${kind}s/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) })
   if (!r.ok) throw new Error((await r.json()).message) // rückgängig gemacht, Toast mit der Meldung
 }
 ```
+
+Binden Sie sie als `:persist-toggle="persistToggle"`. Sie wird pro Umschalten
+genau einmal aufgerufen; das Event `toggle` folgt, sobald sie abgeschlossen ist.
+
+> **Veraltet: `onToggle`.** Vor 1.0.2 war die Speicherfunktion die Prop
+> `onToggle`, die zugleich der Handler ist, den Vue für das Event `toggle`
+> aufruft — sie lief daher zweimal pro Umschalten. Bis 1.1 gilt eine als
+> `onToggle` (oder als `@toggle`-Listener) übergebene Funktion ohne
+> `persistToggle` weiterhin als Speicherfunktion: einmal aufgerufen, mit
+> Rücknahme bei Ablehnung; das Event `toggle` wird dann nicht ausgelöst.
+> Wechseln Sie zu `persistToggle`; ab 1.1 ist `onToggle` nur noch der Listener
+> des Events `toggle`.
 
 Die Überschreibung bleibt bestehen, bis sich die Prop `graph` ändert (geben Sie
 das aktualisierte Modell zurück) — dann entscheidet das Modell.

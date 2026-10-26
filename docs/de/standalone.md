@@ -20,7 +20,7 @@ bevorzugt). Es stellt das globale `DskFlow` bereit.
     theme: 'system', // 'light' | 'dark' | 'system'; nicht gesetzt lässt <html data-theme> unberührt
     locale: 'en',
     toggleable: true,
-    onToggle: (change) => fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) }).then((r) => {
+    persistToggle: (change) => fetch('/api/toggle', { method: 'POST', body: JSON.stringify(change) }).then((r) => {
       if (!r.ok) throw new Error('Refused')
     }),
     poll: {

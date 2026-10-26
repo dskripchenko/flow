@@ -24,7 +24,8 @@ import '@dskripchenko/flow/style.css'
 | `pollParams` | `unknown` | — | передаётся в `poll.fetch` как `context.params` (id экземпляра, фильтр); изменение сразу перезапускает опрос |
 | `staleAfterMs` | `number` | 3 интервала, ≥ 15 с | предупреждение об устаревании |
 | `toggleable` | `boolean` | `false` | переключатели при наведении и в панели деталей |
-| `onToggle` | `(change) => Promise \| void` | — | сохраняет переключение; отказ откатывает его и показывает тост с ошибкой |
+| `persistToggle` | `(change) => Promise \| void` | — | сохраняет переключение; отказ откатывает его и показывает тост с ошибкой |
+| `onToggle` | `(change) => Promise \| void` | — | **устарело**: псевдоним `persistToggle`, будет удалён в 1.1 (см. ниже) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | графы для строковых ссылок `subgraph` |
 | `loadSubgraph` | `(ref, node) => Promise<Graph>` | — | загружает ссылку, которой нет в `subgraphs` |
 | `details` | `boolean` | `true` | встроенная панель деталей |
@@ -48,8 +49,8 @@ import '@dskripchenko/flow/style.css'
 | Событие | Данные |
 |---|---|
 | `select` | `{ kind, id, element, path } \| null` |
-| `toggle` | `{ kind: 'node' \| 'edge', id, enabled, path }` — отправляется оптимистично |
-| `toggle-error` | `(change, error)` — `onToggle` отказал; изменение откачено |
+| `toggle` | `(change, result)` — один раз на переключение, после завершения `persistToggle` (без него — сразу); `result` — `{ ok: true }` или `{ ok: false, error, rolledBack }` |
+| `toggle-error` | `(change, error)` — `persistToggle` отказал; изменение откачено |
 | `navigate` | `NavigationLevel[]` — подпроцессы, в которые вошли, начиная с корня |
 | `poll-error` | `error` |
 
@@ -70,14 +71,25 @@ import '@dskripchenko/flow/style.css'
 С `toggleable` при наведении на узел или переход над ним появляется
 переключатель кита; ещё один есть в панели деталей. Изменение применяется
 сразу (приглушение, зачёркивание; переходы выключенного узла приглушаются
-вместе с ним), и вызывается `onToggle`:
+вместе с ним), и вызывается `persistToggle`:
 
 ```ts
-async function onToggle({ kind, id, enabled, path }: ToggleChange) {
+async function persistToggle({ kind, id, enabled, path }: ToggleChange) {
   const r = await fetch(`/api/process/${kind}s/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) })
   if (!r.ok) throw new Error((await r.json()).message) // откат, тост с сообщением
 }
 ```
+
+Передайте её как `:persist-toggle="persistToggle"`. Она вызывается ровно один
+раз на переключение; событие `toggle` приходит после её завершения.
+
+> **Устарело: `onToggle`.** До 1.0.2 функцией сохранения было свойство
+> `onToggle`, но это же обработчик, который Vue вызывает для события `toggle`,
+> поэтому она выполнялась дважды на переключение. До 1.1 функция, переданная
+> как `onToggle` (или как слушатель `@toggle`) без `persistToggle`, по-прежнему
+> считается функцией сохранения: вызывается один раз, отказ откатывает
+> переключение; событие `toggle` при этом не отправляется. Переходите на
+> `persistToggle`; с 1.1 `onToggle` — просто слушатель события `toggle`.
 
 Переопределение держится, пока не изменится свойство `graph` (передайте
 обновлённую модель обратно), — дальше решает модель.

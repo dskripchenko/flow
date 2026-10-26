@@ -50,7 +50,7 @@ speichert Positionen.
 
 ## Umschalten
 
-Der Viewer ruft `onToggle(change)` auf; senden Sie es an den Server:
+Der Viewer ruft `persistToggle(change)` einmal pro Umschalten auf; senden Sie es an den Server:
 
 ```json
 { "kind": "node", "id": "cancelled", "enabled": false, "path": [] }
@@ -58,9 +58,13 @@ Der Viewer ruft `onToggle(change)` auf; senden Sie es an den Server:
 
 `path` sind die Knoten-IDs der Teilprozesse ab der Wurzel (leer auf der
 Wurzelebene). Lehnen Sie ab (Status außerhalb von 2xx, Exception in
-`onToggle`), um den Schalter zurückzusetzen; die Fehlermeldung wird in einem
+`persistToggle`), um den Schalter zurückzusetzen; die Fehlermeldung wird in einem
 Toast angezeigt. Übergeben Sie danach das aktualisierte Modell als `graph`
 (oder behalten Sie es: Der optimistische Zustand bleibt, bis sich `graph` ändert).
+
+`onToggle` ist der veraltete Name von `persistToggle` (bis 1.1): Auch er wird
+einmal aufgerufen, verwenden Sie aber `persistToggle` — `onToggle` ist der
+Handler des Events `toggle`, das nach Abschluss der Speicherfunktion kommt.
 
 ## Teilprozesse
 

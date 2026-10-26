@@ -1,5 +1,25 @@
 # @dskripchenko/flow
 
+## 1.0.2 — 2026-10-26
+
+- **`FlowView`: the persist function is now `persistToggle`.** The old prop
+  `onToggle` is also the handler Vue calls for the emitted `toggle` event, so
+  a host's persist function ran twice per switch (two requests), and a
+  rejection on the emit path surfaced as an unhandled error. `persistToggle`
+  is called exactly once per switch; a rejection rolls the switch back with
+  an error toast and `toggle-error`, as before.
+- **`toggle` fires once, after the persist function settles** (at once
+  without one), with a second argument `ToggleResult`: `{ ok: true }` or
+  `{ ok: false, error, rolledBack }`. It used to fire optimistically before
+  the request.
+- **Deprecated: `onToggle` as the persist function**, kept until 1.1. Without
+  `persistToggle`, a function passed as `onToggle` (or as an `@toggle`
+  listener — the same vnode prop) is still the persist function, called once,
+  with the rollback; the `toggle` event is then not emitted, since it would
+  call it again. From 1.1 `onToggle` is only the `toggle` listener.
+- New exported types `ToggleResult` and `PersistToggle`.
+- `FlowEditor` has no function prop that collides with an event; unchanged.
+
 ## 1.0.1 — 2026-10-26
 
 Requires `@dskripchenko/ui` 1.15 and drops the workarounds for what it fixed.

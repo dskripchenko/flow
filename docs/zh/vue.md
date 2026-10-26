@@ -22,7 +22,8 @@ import '@dskripchenko/flow/style.css'
 | `pollParams` | `unknown` | — | 作为 `context.params` 传给 `poll.fetch`（实例 id、过滤条件）；变化时立即重启轮询 |
 | `staleAfterMs` | `number` | 3 个间隔，≥ 15 秒 | 过期警告 |
 | `toggleable` | `boolean` | `false` | 悬停时和抽屉中的启用/禁用开关 |
-| `onToggle` | `(change) => Promise \| void` | — | 持久化切换；被拒绝时回滚并弹出错误提示 |
+| `persistToggle` | `(change) => Promise \| void` | — | 持久化切换；被拒绝时回滚并弹出错误提示 |
+| `onToggle` | `(change) => Promise \| void` | — | **已弃用**：`persistToggle` 的别名，将在 1.1 中移除（见下文） |
 | `subgraphs` | `Record<string, Graph>` | `{}` | 字符串 `subgraph` 引用对应的图 |
 | `loadSubgraph` | `(ref, node) => Promise<Graph>` | — | 加载不在 `subgraphs` 中的引用 |
 | `details` | `boolean` | `true` | 内置详情抽屉 |
@@ -46,8 +47,8 @@ import '@dskripchenko/flow/style.css'
 | 事件 | 载荷 |
 |---|---|
 | `select` | `{ kind, id, element, path } \| null` |
-| `toggle` | `{ kind: 'node' \| 'edge', id, enabled, path }` —— 乐观地触发 |
-| `toggle-error` | `(change, error)` —— `onToggle` 被拒绝；改动已回滚 |
+| `toggle` | `(change, result)` —— 每次切换触发一次，在 `persistToggle` 完成之后（没有它时立即触发）；`result` 为 `{ ok: true }` 或 `{ ok: false, error, rolledBack }` |
+| `toggle-error` | `(change, error)` —— `persistToggle` 被拒绝；改动已回滚 |
 | `navigate` | `NavigationLevel[]` —— 已进入的子流程，根在前 |
 | `poll-error` | `error` |
 
@@ -65,14 +66,23 @@ import '@dskripchenko/flow/style.css'
 ### 启用与禁用
 
 开启 `toggleable` 后，悬停在节点或边上时其上方会出现 kit 的开关，详情抽屉中也有一个。
-改动立即生效（变暗并加删除线；被禁用节点的边也随之变暗），并调用 `onToggle`：
+改动立即生效（变暗并加删除线；被禁用节点的边也随之变暗），并调用 `persistToggle`：
 
 ```ts
-async function onToggle({ kind, id, enabled, path }: ToggleChange) {
+async function persistToggle({ kind, id, enabled, path }: ToggleChange) {
   const r = await fetch(`/api/process/${kind}s/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) })
   if (!r.ok) throw new Error((await r.json()).message) // 回滚，并以该消息弹出 toast
 }
 ```
+
+以 `:persist-toggle="persistToggle"` 绑定。每次切换恰好调用一次；完成后再触发
+`toggle` 事件。
+
+> **已弃用：`onToggle`。** 1.0.2 之前持久化函数是 `onToggle` prop，而它同时也是
+> Vue 为 `toggle` 事件调用的处理函数，因此每次切换会执行两次。在 1.1 之前，若未提供
+> `persistToggle`，作为 `onToggle`（或 `@toggle` 监听器）传入的函数仍被视为持久化
+> 函数：只调用一次，被拒绝时回滚；此时不再触发 `toggle` 事件。请改用
+> `persistToggle`；从 1.1 起 `onToggle` 只是 `toggle` 事件的监听器。
 
 这一覆盖状态会保留到 `graph` prop 变化为止（把更新后的模型传回来）——之后以模型为准。
 
