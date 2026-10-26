@@ -21,7 +21,7 @@ id 在节点、边和分组之间全局唯一。
 ```ts
 interface FlowNode {
   id: string
-  type: string                 // start | end | state | task | decision | subprocess | note | custom
+  type: string                 // start | end | state | task | decision | subprocess | parallel | timer | wait | any | note | custom
   label?: string
   description?: string         // 标签下方的第二行文字
   position?: { x: number; y: number } // 中心点；缺省时自动布局
@@ -30,6 +30,7 @@ interface FlowNode {
   enabled?: boolean            // false：变暗并加删除线
   subgraph?: string | Graph    // 内联图或引用：使节点可下钻
   ports?: Port[]               // 覆盖类型的端口
+  join?: 'all' | 'any'         // parallel：全部区域完成或任一区域完成时结束
 }
 ```
 
@@ -41,7 +42,16 @@ interface FlowNode {
 | `task` | 带图标块的矩形 | |
 | `decision` | 菱形 | |
 | `subprocess` | 带子流程标记的矩形 | 可下钻 |
+| `parallel` | 带区域分隔栏的矩形 | 可下钻；区域即其内联子图的顶层分组；`join` 显示在上边缘 |
+| `timer` | 带秒表的双圆 | 中间事件：等待定时器；标签在其下方 |
+| `wait` | 带沙漏的双圆 | 中间事件：等待输入或消息；标签在其下方 |
+| `any` | 带星号的虚线圆 | “任意状态”：其边从图中每个状态生效；是来源，但不是 start |
 | `note` | 折角纸片 | 注释：不参与流程检查 |
+
+`parallel` 节点是带并发区域的状态。为它提供内联 `subgraph`，其顶层分组
+（`groups`）即区域（每个区域有自己的 start）：节点为每个区域显示一个分隔栏，
+下钻时分组被绘制为区域泳道，导航栏中显示汇合规则（`所有区域` / `任一区域`）。
+若子图为引用，则节点不显示分隔栏。
 
 ## 边
 
@@ -56,6 +66,7 @@ interface FlowEdge {
   condition?: string           // 守卫条件；没有标签时显示
   enabled?: boolean
   kind?: 'transition' | 'association' // association：虚线、无箭头（注释连到其节点）
+  trigger?: 'timer' | 'event' // 触发方式：边标签上的图标（可带文字或不带）
   data?: Record<string, DataValue>
 }
 ```
@@ -117,9 +128,9 @@ const registry = createRegistry({
 ```
 
 类型定义（`NodeTypeDef`）：`title`、`shape`（`rect`、`rounded`、`circle`、`ring`、
-`diamond`、`note`、`pill`）、固定的 `size` 或 `minWidth`/`maxWidth`/`height`、
+`diamond`、`note`、`pill`、`event`、`any`）、固定的 `size` 或 `minWidth`/`maxWidth`/`height`、
 `ports`、`icon`（`NODE_ICONS` 中的名称，或通过 `nodeIcons` prop 传入的组件）、
-`labelOutside`、`noIncoming`、`noOutgoing`、`annotation`、`drillable` 以及 `locked`
+`labelOutside`、`noIncoming`、`noOutgoing`、`annotation`、`drillable`、`regions`（分隔栏与 join，如 `parallel`）、`anyState`（不算作 start 的来源，如 `any`）以及 `locked`
 （编辑器不允许用户修改或删除此类节点）。把注册表传给组件以及
 `validateGraph` / `layoutGraph`。
 
@@ -141,7 +152,7 @@ const issues = validateGraph(graph, { registry })
 | `unknown-type` | warning | 不在注册表中（按 state 绘制） |
 | `missing-start`、`missing-end` | warning | 用 `requireStartEnd: false` 关闭 |
 | `start-incoming`、`end-outgoing` | warning | 有边进入 start 或从 end 出发 |
-| `unreachable` | warning | 从任何 start 都无法到达 |
+| `unreachable` | warning | 从任何 start 或“任意状态”节点都无法到达 |
 | `dead-end` | warning | 步骤没有出路 |
 | `empty-label` | warning | 步骤没有标签 |
 

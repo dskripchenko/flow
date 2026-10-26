@@ -29,7 +29,7 @@ Every field is optional.
 
 | Field | Drawn as |
 |---|---|
-| `nodes[id].status` | `active`: accent outline and a pulsing halo; `done`: green outline and a check; `error`: red outline and fill; `waiting`: amber dashed outline; `skipped`: dimmed. Other strings are neutral unless `statusTones` maps them. |
+| `nodes[id].status` | `active`: accent outline and a pulsing halo; `done`: green outline and a check; `error`: red outline and fill; `waiting`: amber dashed outline; `skipped`: dimmed; `unknown` (the outcome is not known — e.g. a side effect awaiting reconciliation): amber, a question mark; `compensated` (undone by compensation): neutral, an undo glyph. Other strings are neutral unless `statusTones` maps them. |
 | `nodes[id].count` | a counter on the node's corner |
 | `nodes[id].badge` | a corner badge instead of the status icon (e.g. an error count) |
 | `nodes[id].message` | a line in the details panel |

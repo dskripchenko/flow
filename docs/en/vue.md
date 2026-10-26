@@ -25,7 +25,7 @@ switches, drill-down into sub-processes and a details drawer.
 | `staleAfterMs` | `number` | 3 intervals, ≥ 15 s | the stale warning |
 | `toggleable` | `boolean` | `false` | enable/disable switches on hover and in the drawer |
 | `persistToggle` | `(change) => Promise \| void` | — | persists a toggle; a rejection rolls it back with an error toast |
-| `onToggle` | `(change) => Promise \| void` | — | **deprecated** alias of `persistToggle`, removed in 1.1 (see below) |
+| `onToggle` | `(change) => Promise \| void` | — | **deprecated** alias of `persistToggle`, removed in 2.0 (see below) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | graphs for string `subgraph` references |
 | `loadSubgraph` | `(ref, node) => Promise<Graph>` | — | loads a reference not in `subgraphs` |
 | `details` | `boolean` | `true` | the built-in details drawer |
@@ -84,10 +84,10 @@ switch; the `toggle` event follows once it settles.
 
 > **Deprecated: `onToggle`.** Before 1.0.2 the persist function was the
 > `onToggle` prop, which is also the handler Vue calls for the `toggle` event,
-> so it ran twice per switch. Until 1.1, a function passed as `onToggle` (or
+> so it ran twice per switch. Until 2.0, a function passed as `onToggle` (or
 > as an `@toggle` listener) without `persistToggle` is still treated as the
 > persist function, called once, with the rollback on rejection; the `toggle`
-> event is then not emitted. Switch to `persistToggle`; from 1.1 `onToggle`
+> event is then not emitted. Switch to `persistToggle`; from 2.0 `onToggle`
 > is just the `toggle` event listener.
 
 The override is kept until the `graph` prop changes (pass the updated model

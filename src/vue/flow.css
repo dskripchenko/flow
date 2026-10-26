@@ -86,6 +86,16 @@
   stroke-dasharray: 5 4;
   stroke-width: 1;
 }
+.fl-group--region rect {
+  fill: none;
+  stroke: color-mix(in srgb, var(--fl-info) 45%, transparent);
+  stroke-dasharray: 8 5;
+  stroke-width: 1.25;
+}
+.fl-group--region .fl-group__label {
+  fill: var(--fl-info);
+  letter-spacing: 0.02em;
+}
 .fl-group__label {
   font-size: 11px;
   font-weight: 600;
@@ -183,6 +193,9 @@
   font-weight: 500;
   fill: var(--fl-node-muted);
 }
+.fl-edge-label__trigger {
+  color: var(--fl-warning);
+}
 .fl-edge-label.is-path .fl-edge-label__bg {
   stroke: color-mix(in srgb, var(--fl-accent) 55%, transparent);
   fill: var(--fl-accent-subtle);
@@ -274,6 +287,51 @@
 .fl-node__end-core {
   fill: var(--fl-node-text);
 }
+.fl-node__body--event {
+  fill: var(--fl-node-bg);
+  stroke: var(--fl-warning);
+  stroke-width: 1.5;
+}
+.fl-node__event-inner {
+  fill: none;
+  stroke: var(--fl-warning);
+  stroke-width: 1.2;
+}
+.fl-node--event .fl-node__glyph {
+  color: var(--fl-warning);
+}
+.fl-node__body--any {
+  fill: var(--fl-node-bg);
+  stroke: var(--fl-node-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.fl-node--any .fl-node__glyph {
+  color: var(--fl-node-muted);
+}
+.fl-node__regions-rule,
+.fl-node__region-divider {
+  stroke: var(--fl-node-border);
+  stroke-width: 1;
+}
+.fl-node__region-divider {
+  stroke-dasharray: 4 3;
+}
+.fl-node__region-label {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--fl-node-muted);
+}
+.fl-node__join rect {
+  fill: var(--fl-info-subtle);
+  stroke: color-mix(in srgb, var(--fl-info) 55%, transparent);
+  stroke-width: 1;
+}
+.fl-node__join text {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--fl-info);
+}
 .fl-node--note .fl-node__body {
   fill: var(--fl-warning-subtle);
   stroke: color-mix(in srgb, var(--fl-warning) 45%, transparent);
@@ -342,8 +400,8 @@
   stroke-dasharray: 4 3;
 }
 
-.fl-node__chip circle,
-.fl-node__chip rect {
+.fl-node__chip > circle,
+.fl-node__chip > rect {
   fill: var(--fl-node-muted);
   stroke: var(--fl-bg);
   stroke-width: 2;
@@ -357,24 +415,31 @@
   fill: #fff;
   font-variant-numeric: tabular-nums;
 }
-.fl-tone--success .fl-node__chip circle,
-.fl-tone--success .fl-node__chip rect {
+.fl-tone--success .fl-node__chip > circle,
+.fl-tone--success .fl-node__chip > rect {
   fill: var(--fl-success);
 }
-.fl-tone--danger .fl-node__chip circle,
-.fl-tone--danger .fl-node__chip rect {
+.fl-tone--danger .fl-node__chip > circle,
+.fl-tone--danger .fl-node__chip > rect {
   fill: var(--fl-danger);
 }
-.fl-tone--warning .fl-node__chip circle,
-.fl-tone--warning .fl-node__chip rect {
+.fl-tone--warning .fl-node__chip > circle,
+.fl-tone--warning .fl-node__chip > rect {
   fill: var(--fl-warning);
 }
-.fl-tone--accent .fl-node__chip circle,
-.fl-tone--accent .fl-node__chip rect {
+/* White on amber is unreadable in the dark theme: a dark glyph instead. */
+.fl-tone--warning .fl-node__chip svg {
+  color: #422006;
+}
+.fl-tone--warning .fl-node__chip text {
+  fill: #422006;
+}
+.fl-tone--accent .fl-node__chip > circle,
+.fl-tone--accent .fl-node__chip > rect {
   fill: var(--fl-accent);
 }
-.fl-tone--info .fl-node__chip circle,
-.fl-tone--info .fl-node__chip rect {
+.fl-tone--info .fl-node__chip > circle,
+.fl-tone--info .fl-node__chip > rect {
   fill: var(--fl-info);
 }
 .fl-node__chip--pulse .fl-node__pulse {
@@ -602,6 +667,10 @@
   transform: translate(-50%, calc(-100% - 6px));
 }
 
+.fl-nav__join {
+  flex: none;
+  margin-left: 4px;
+}
 .fl-nav {
   position: absolute;
   left: 12px;

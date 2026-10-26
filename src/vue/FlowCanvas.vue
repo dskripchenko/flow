@@ -23,6 +23,7 @@ import {
   sidePoint,
   snap,
   typeOf,
+  TRIGGER_ROOM,
   type EdgeGeometry,
   type ElementRef,
   type FlowEdge,
@@ -42,7 +43,7 @@ import {
 import FlowNodeShape from './FlowNodeShape.vue'
 import FlowMinimap from './FlowMinimap.vue'
 import FlowControls from './FlowControls.vue'
-import { NODE_ICONS } from './icons'
+import { NODE_ICONS, TRIGGER_ICONS } from './icons'
 import type { FlowLabels } from './labels'
 import { canvasMeasurer } from './measure'
 import { useViewport } from './useViewport'
@@ -90,6 +91,8 @@ const props = withDefaults(
     monitor?: MonitorState
     /** Room beside edge labels for counters (keeps layout stable once counters arrive). */
     reserveCounters?: boolean
+    /** The graph is a `parallel` node's: its top-level groups are drawn as regions. */
+    regionGroups?: boolean
     selection?: readonly string[]
     /** Element id → worst issue severity. */
     issues?: ReadonlyMap<string, 'error' | 'warning'>
@@ -237,6 +240,7 @@ const edgeGeometry = computed<Map<string, EdgeGeometry>>(() => {
 })
 
 const groupBoxes = computed(() => layout.value.groups)
+const groupParent = computed(() => new Map((props.graph.groups ?? []).map((g) => [g.id, g.parent])))
 const bounds = computed(() => (drag.value ? boundsOf(nodeBoxes.value, edgeGeometry.value, groupBoxes.value) : layout.value.bounds))
 
 // ---------------------------------------------------------------------------
@@ -285,6 +289,11 @@ function markerFor(e: FlowEdge): string | undefined {
   const c = edgeClass(e)
   const tone = c['is-selected'] ? 'accent' : c['is-path'] ? 'accent' : c['is-traversed'] ? 'success' : c['is-disabled'] ? 'muted' : 'default'
   return `url(#${uid}-arrow-${tone})`
+}
+/** The label text's centre: left of the counter, right of the trigger icon. */
+function edgeLabelX(e: FlowEdge): number {
+  const label = edgeGeometry.value.get(e.id)!.label!
+  return label.x - (edgeCount(e) || props.reserveCounters ? 15 : 0) + (e.trigger ? TRIGGER_ROOM / 2 : 0)
 }
 function edgeCount(e: FlowEdge): string {
   const c = props.monitor?.edges[e.id]?.count
@@ -1153,6 +1162,7 @@ function iconFor(n: FlowNode): Component | undefined {
             v-for="g in groupBoxes.values()"
             :key="g.id"
             class="fl-group"
+            :class="{ 'fl-group--region': regionGroups && !groupParent.get(g.id) }"
             :data-group-id="g.id"
           >
             <rect
@@ -1289,16 +1299,28 @@ function iconFor(n: FlowNode): Component | undefined {
                   :height="edgeGeometry.get(e.id)!.label!.height"
                   rx="6"
                 />
+                <component
+                  :is="TRIGGER_ICONS[e.trigger]"
+                  v-if="e.trigger && TRIGGER_ICONS[e.trigger]"
+                  class="fl-edge-label__trigger"
+                  :x="edgeGeometry.get(e.id)!.label!.lines.length ? edgeGeometry.get(e.id)!.label!.x - edgeGeometry.get(e.id)!.label!.width / 2 + 7 : edgeGeometry.get(e.id)!.label!.x - 6"
+                  :y="edgeGeometry.get(e.id)!.label!.y - 6"
+                  :width="12"
+                  :height="12"
+                  :stroke-width="2.2"
+                  role="img"
+                  :aria-label="e.trigger === 'timer' ? labels.triggerTimer : labels.triggerEvent"
+                />
                 <text
                   class="fl-edge-label__text"
-                  :x="edgeGeometry.get(e.id)!.label!.x - (edgeCount(e) || reserveCounters ? 15 : 0)"
+                  :x="edgeLabelX(e)"
                   :y="edgeGeometry.get(e.id)!.label!.y - (edgeGeometry.get(e.id)!.label!.lines.length - 1) * 7.5 + 4.5"
                   text-anchor="middle"
                 >
                   <tspan
                     v-for="(line, i) in edgeGeometry.get(e.id)!.label!.lines"
                     :key="i"
-                    :x="edgeGeometry.get(e.id)!.label!.x - (edgeCount(e) || reserveCounters ? 15 : 0)"
+                    :x="edgeLabelX(e)"
                     :dy="i === 0 ? 0 : 15"
                   >{{ line }}</tspan>
                 </text>

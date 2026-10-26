@@ -6,7 +6,7 @@
  */
 import { computed, type Component } from 'vue'
 import { Layers } from '@dskripchenko/ui/icons'
-import type { FlowNode, NodeGeometry, NodeRunState, NodeTypeDef } from '../index'
+import { REGION_STRIP, type FlowNode, type NodeGeometry, type NodeRunState, type NodeTypeDef } from '../index'
 import { NODE_ICONS, STATUS_ICONS } from './icons'
 import type { FlowLabels } from './labels'
 
@@ -34,7 +34,22 @@ const emit = defineEmits<{ enter: [] }>()
 const w = computed(() => props.geometry.width)
 const h = computed(() => props.geometry.height)
 const shape = computed(() => props.def.shape)
-const round = computed(() => shape.value === 'circle' || shape.value === 'ring')
+const round = computed(() => shape.value === 'circle' || shape.value === 'ring' || shape.value === 'event' || shape.value === 'any')
+/** A `parallel` node's region compartments, and the height above them. */
+const regions = computed(() => props.geometry.regions ?? [])
+const bodyH = computed(() => (regions.value.length ? h.value - REGION_STRIP : h.value))
+const regionCells = computed(() => {
+  let x = 8
+  return regions.value.map((r) => {
+    const cell = { ...r, x, width: r.width }
+    x += r.width
+    return cell
+  })
+})
+const joinText = computed(() => (props.node.join === 'all' ? props.labels.joinAll : props.node.join === 'any' ? props.labels.joinAny : ''))
+const joinWidth = computed(() => joinText.value.length * 6.2 + 16)
+/** The join pill sits on the top edge, left; the counter and the status chip take the right. */
+const joinX = computed(() => 14 + joinWidth.value / 2)
 const iconComp = computed<Component | undefined>(() => props.icon ?? (props.def.icon ? NODE_ICONS[props.def.icon] : undefined))
 const showTile = computed(() => !!iconComp.value && (shape.value === 'rect' || shape.value === 'rounded' || shape.value === 'pill'))
 const status = computed(() => props.run?.status)
@@ -71,7 +86,7 @@ const text = computed(() => {
   const centred = shape.value === 'diamond' || (!showTile.value && shape.value !== 'note')
   return {
     x: centred ? w.value / 2 : left,
-    y: (h.value - total) / 2 + 14,
+    y: (bodyH.value - total) / 2 + 14,
     anchor: centred ? ('middle' as const) : ('start' as const),
   }
 })
@@ -190,6 +205,28 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
         :r="w / 2 - 8"
       />
     </template>
+    <template v-else-if="shape === 'event'">
+      <circle
+        class="fl-node__body fl-node__body--event"
+        :cx="w / 2"
+        :cy="h / 2"
+        :r="w / 2"
+      />
+      <circle
+        class="fl-node__event-inner"
+        :cx="w / 2"
+        :cy="h / 2"
+        :r="w / 2 - 4"
+      />
+    </template>
+    <template v-else-if="shape === 'any'">
+      <circle
+        class="fl-node__body fl-node__body--any"
+        :cx="w / 2"
+        :cy="h / 2"
+        :r="w / 2 - 1"
+      />
+    </template>
     <template v-else-if="outline">
       <path
         class="fl-node__shadow"
@@ -237,7 +274,7 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
     >
       <rect
         :x="12"
-        :y="h / 2 - 15"
+        :y="bodyH / 2 - 15"
         width="30"
         height="30"
         rx="8"
@@ -245,12 +282,67 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
       <component
         :is="iconComp"
         :x="19"
-        :y="h / 2 - 8"
+        :y="bodyH / 2 - 8"
         :width="16"
         :height="16"
         :stroke-width="2"
         aria-hidden="true"
       />
+    </g>
+
+    <!-- Parallel regions: compartments under the label, dashed dividers. -->
+    <g
+      v-if="regionCells.length"
+      class="fl-node__regions"
+    >
+      <title>{{ labels.regions }}: {{ regionCells.map((r) => r.label).join(', ') }}</title>
+      <line
+        class="fl-node__regions-rule"
+        x1="0"
+        :y1="bodyH"
+        :x2="w"
+        :y2="bodyH"
+      />
+      <template
+        v-for="(r, i) in regionCells"
+        :key="r.id"
+      >
+        <line
+          v-if="i > 0"
+          class="fl-node__region-divider"
+          :x1="r.x"
+          :y1="bodyH + 5"
+          :x2="r.x"
+          :y2="h - 5"
+        />
+        <text
+          class="fl-node__region-label"
+          :x="r.x + r.width / 2"
+          :y="bodyH + REGION_STRIP / 2 + 4"
+          text-anchor="middle"
+        >{{ r.label }}</text>
+      </template>
+    </g>
+
+    <!-- Parallel join: when the node is done. -->
+    <g
+      v-if="joinText"
+      class="fl-node__join"
+      :transform="`translate(${joinX} 0)`"
+    >
+      <title>{{ labels.join }}: {{ joinText }}</title>
+      <rect
+        :x="-joinWidth / 2"
+        y="-8"
+        :width="joinWidth"
+        height="16"
+        rx="8"
+      />
+      <text
+        x="0"
+        y="3.5"
+        text-anchor="middle"
+      >{{ joinText }}</text>
     </g>
 
     <!-- Label. -->

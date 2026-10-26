@@ -31,7 +31,8 @@ const poll = {
 **Core** (`@dskripchenko/flow`, plain TypeScript, no DOM)
 
 - A versioned JSON model: nodes (`start`, `end`, `state`, `task`, `decision`,
-  `subprocess`, `note`, or your own types), edges with labels, conditions and
+  `subprocess`, `parallel` with regions, `timer` and `wait` events, `any`
+  state, `note`, or your own types), edges with labels, conditions, triggers and
   ports, groups, inline or referenced sub-processes. JSON Schemas included.
 - Validation: duplicate ids, broken references and ports (errors); missing
   start/end, unreachable steps, dead ends (warnings). Cycles are fine.

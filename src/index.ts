@@ -8,6 +8,7 @@
 export {
   GRAPH_VERSION,
   isEnabled,
+  regionsOf,
   type BuiltinNodeType,
   type DataValue,
   type ElementKind,
@@ -40,6 +41,9 @@ export {
   DESCRIPTION_FONT,
   EDGE_FONT,
   LABEL_FONT,
+  REGION_FONT,
+  REGION_STRIP,
+  TRIGGER_ROOM,
   boundsOf,
   frameAround,
   layoutGraph,

@@ -22,7 +22,7 @@ Ids are unique across nodes, edges and groups.
 ```ts
 interface FlowNode {
   id: string
-  type: string                 // start | end | state | task | decision | subprocess | note | custom
+  type: string                 // start | end | state | task | decision | subprocess | parallel | timer | wait | any | note | custom
   label?: string
   description?: string         // a secondary line under the label
   position?: { x: number; y: number } // the centre; laid out automatically when missing
@@ -31,6 +31,7 @@ interface FlowNode {
   enabled?: boolean            // false: drawn dimmed and struck through
   subgraph?: string | Graph    // an inline graph or a reference: makes the node drillable
   ports?: Port[]               // overrides the type's ports
+  join?: 'all' | 'any'         // parallel: done when all regions are, or any of them
 }
 ```
 
@@ -42,7 +43,17 @@ interface FlowNode {
 | `task` | rectangle with an icon tile | |
 | `decision` | diamond | |
 | `subprocess` | rectangle with a sub-process marker | drillable |
+| `parallel` | rectangle with region compartments | drillable; regions are the top-level groups of its inline subgraph; `join` shown on the top edge |
+| `timer` | double circle with a stopwatch | an intermediate event: waiting for a timer; label under it |
+| `wait` | double circle with an hourglass | an intermediate event: waiting for input or a message; label under it |
+| `any` | dashed circle with an asterisk | "any state": its edges apply from every state of the graph; a source, but not the start |
 | `note` | folded sheet | annotation: not part of the flow checks |
+
+A `parallel` node is a state with concurrent regions. Give it an inline
+`subgraph` whose top-level `groups` are the regions (each with its own start):
+the node shows one compartment per region, and drilling in draws the groups as
+region lanes, with the join (`all regions` / `any region`) in the navigation bar.
+With a subgraph reference the node is drawn without compartments.
 
 ## Edges
 
@@ -57,6 +68,7 @@ interface FlowEdge {
   condition?: string           // a guard; shown when there is no label
   enabled?: boolean
   kind?: 'transition' | 'association' // association: dashed, no arrow (a note to its node)
+  trigger?: 'timer' | 'event' // what fires it: an icon on the edge label (with or without words)
   data?: Record<string, DataValue>
 }
 ```
@@ -121,10 +133,10 @@ const registry = createRegistry({
 ```
 
 A type definition (`NodeTypeDef`): `title`, `shape` (`rect`, `rounded`,
-`circle`, `ring`, `diamond`, `note`, `pill`), a fixed `size` or
+`circle`, `ring`, `diamond`, `note`, `pill`, `event`, `any`), a fixed `size` or
 `minWidth`/`maxWidth`/`height`, `ports`, `icon` (a name from `NODE_ICONS` or a
 component through the `nodeIcons` prop), `labelOutside`, `noIncoming`,
-`noOutgoing`, `annotation`, `drillable`, and `locked` (the editor does not let
+`noOutgoing`, `annotation`, `drillable`, `regions` (compartments and join, as `parallel`), `anyState` (a source that is not the start, as `any`) and `locked` (the editor does not let
 users change or delete such nodes). Pass the registry to the components and to
 `validateGraph` / `layoutGraph`.
 
@@ -146,7 +158,7 @@ const issues = validateGraph(graph, { registry })
 | `unknown-type` | warning | not in the registry (drawn as a state) |
 | `missing-start`, `missing-end` | warning | off with `requireStartEnd: false` |
 | `start-incoming`, `end-outgoing` | warning | an edge into a start or out of an end |
-| `unreachable` | warning | not reachable from any start |
+| `unreachable` | warning | not reachable from any start or "any state" node |
 | `dead-end` | warning | a step with no way out |
 | `empty-label` | warning | a step without a label |
 

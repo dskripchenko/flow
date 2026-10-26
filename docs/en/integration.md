@@ -56,7 +56,7 @@ The viewer calls `persistToggle(change)` once per switch; send it to the server:
 shown in a toast. Then pass the updated model as `graph` (or keep it: the
 optimistic state stays until `graph` changes).
 
-`onToggle` is the deprecated name of `persistToggle` (until 1.1): it is called
+`onToggle` is the deprecated name of `persistToggle` (until 2.0): it is called
 once as well, but use `persistToggle` — `onToggle` is the handler of the
 `toggle` event, which fires after the persist function settles.
 

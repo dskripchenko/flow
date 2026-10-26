@@ -10,7 +10,11 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
-          "status": { "type": "string", "description": "active, done, error, waiting, skipped, or a host status (drawn neutral unless mapped by statusTones)." },
+          "status": {
+            "type": "string",
+            "description": "active, done, error, waiting, skipped, unknown (the outcome is not known), compensated (undone by compensation), or a host status (drawn neutral unless mapped by statusTones).",
+            "examples": ["active", "done", "error", "waiting", "skipped", "unknown", "compensated"]
+          },
           "count": { "type": "number", "description": "Instances in or through the node." },
           "badge": { "type": ["string", "number"], "description": "A short corner badge, e.g. an error count." },
           "message": { "type": "string", "description": "Shown in the details panel." },

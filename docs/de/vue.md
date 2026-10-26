@@ -26,7 +26,7 @@ Detail-Drawer.
 | `staleAfterMs` | `number` | 3 Intervalle, ≥ 15 s | die Veraltet-Warnung |
 | `toggleable` | `boolean` | `false` | Schalter zum Aktivieren/Deaktivieren bei Hover und im Drawer |
 | `persistToggle` | `(change) => Promise \| void` | — | speichert ein Umschalten; eine Ablehnung macht es mit einem Fehler-Toast rückgängig |
-| `onToggle` | `(change) => Promise \| void` | — | **veraltet**: Alias von `persistToggle`, entfällt in 1.1 (siehe unten) |
+| `onToggle` | `(change) => Promise \| void` | — | **veraltet**: Alias von `persistToggle`, entfällt in 2.0 (siehe unten) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | Graphen für `subgraph`-Referenzen als Zeichenkette |
 | `loadSubgraph` | `(ref, node) => Promise<Graph>` | — | lädt eine Referenz, die nicht in `subgraphs` steht |
 | `details` | `boolean` | `true` | der eingebaute Detail-Drawer |
@@ -86,11 +86,11 @@ genau einmal aufgerufen; das Event `toggle` folgt, sobald sie abgeschlossen ist.
 
 > **Veraltet: `onToggle`.** Vor 1.0.2 war die Speicherfunktion die Prop
 > `onToggle`, die zugleich der Handler ist, den Vue für das Event `toggle`
-> aufruft — sie lief daher zweimal pro Umschalten. Bis 1.1 gilt eine als
+> aufruft — sie lief daher zweimal pro Umschalten. Bis 2.0 gilt eine als
 > `onToggle` (oder als `@toggle`-Listener) übergebene Funktion ohne
 > `persistToggle` weiterhin als Speicherfunktion: einmal aufgerufen, mit
 > Rücknahme bei Ablehnung; das Event `toggle` wird dann nicht ausgelöst.
-> Wechseln Sie zu `persistToggle`; ab 1.1 ist `onToggle` nur noch der Listener
+> Wechseln Sie zu `persistToggle`; ab 2.0 ist `onToggle` nur noch der Listener
 > des Events `toggle`.
 
 Die Überschreibung bleibt bestehen, bis sich die Prop `graph` ändert (geben Sie

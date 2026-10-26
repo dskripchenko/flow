@@ -57,6 +57,16 @@ const kindOptions = computed(() => [
   { value: 'transition', label: props.labels.transition },
   { value: 'association', label: props.labels.association },
 ])
+const joinOptions = computed(() => [
+  { value: '', label: props.labels.joinUnset },
+  { value: 'all', label: props.labels.joinAll },
+  { value: 'any', label: props.labels.joinAny },
+])
+const triggerOptions = computed(() => [
+  { value: '', label: props.labels.triggerNone },
+  { value: 'timer', label: props.labels.triggerTimer },
+  { value: 'event', label: props.labels.triggerEvent },
+])
 const groupOptions = computed(() => [{ value: '', label: '—' }, ...(props.graph.groups ?? []).map((g) => ({ value: g.id, label: g.label ?? g.id }))])
 const directionOptions = computed(() => [
   { value: 'auto', label: props.labels.directionAuto },
@@ -249,6 +259,17 @@ defineExpose({
         />
       </UidFormField>
       <UidFormField
+        v-if="registry.get(node.type)?.regions"
+        :label="labels.join"
+      >
+        <UidSelect
+          :options="joinOptions"
+          :model-value="node.join ?? ''"
+          :disabled="isLocked"
+          @update:model-value="(v) => patchNode({ join: v === 'all' || v === 'any' ? v : null })"
+        />
+      </UidFormField>
+      <UidFormField
         v-if="graph.groups?.length"
         :label="labels.group"
       >
@@ -385,6 +406,17 @@ defineExpose({
           :model-value="edge.kind ?? 'transition'"
           :disabled="readonly"
           @update:model-value="(v) => patchEdge({ kind: v === 'association' ? 'association' : null })"
+        />
+      </UidFormField>
+      <UidFormField
+        v-if="edge.kind !== 'association'"
+        :label="labels.trigger"
+      >
+        <UidSelect
+          :options="triggerOptions"
+          :model-value="edge.trigger ?? ''"
+          :disabled="readonly"
+          @update:model-value="(v) => patchEdge({ trigger: v === 'timer' || v === 'event' ? v : null })"
         />
       </UidFormField>
       <UidSwitch

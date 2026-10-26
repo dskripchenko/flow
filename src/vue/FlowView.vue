@@ -51,6 +51,9 @@ export interface NavigationLevel {
   /** The node's `subgraph` when it is a reference. */
   ref?: string
   graph: Graph
+  /** The entered node's type (`parallel` draws the graph's regions) and its join. */
+  type?: string
+  join?: 'all' | 'any'
 }
 
 // The root is a locale scope (a fragment): attributes go to the real root.
@@ -78,7 +81,7 @@ const props = withDefaults(
     /** Persists a toggle; a rejection rolls it back and shows an error. */
     persistToggle?: PersistToggle
     /**
-     * @deprecated since 1.0.2, removed in 1.1: use `persistToggle`. Without
+     * @deprecated since 1.0.2, to be removed in 2.0: use `persistToggle`. Without
      * `persistToggle`, a function passed as `onToggle` (the same vnode prop as
      * an `@toggle` listener) is the persist function and is called once per
      * switch; the `toggle` event is then not emitted, since it would call it
@@ -190,6 +193,11 @@ watch(
   },
 )
 const shown = computed<Graph>(() => stack.value[stack.value.length - 1]?.graph ?? props.graph)
+/** Inside a `parallel` node: its regions are drawn as such, its join shown in the bar. */
+const regionLevel = computed(() => {
+  const top = stack.value[stack.value.length - 1]
+  return top?.type !== undefined && props.registry.get(top.type)?.regions === true ? top : undefined
+})
 const path = computed(() => stack.value.map((l) => l.nodeId))
 const levelKey = computed(() => path.value.join('/'))
 
@@ -220,7 +228,9 @@ async function enter(nodeId: string): Promise<void> {
   if (!g) return
   drawerOpen.value = false
   selection.value = []
-  stack.value = [...stack.value, { nodeId: n.id, label: n.label ?? n.id, ref, graph: g }]
+  const level: NavigationLevel = { nodeId: n.id, label: n.label ?? n.id, ref, graph: g, type: n.type }
+  if (n.join) level.join = n.join
+  stack.value = [...stack.value, level]
   emit('navigate', stack.value)
 }
 
@@ -406,6 +416,7 @@ defineExpose({
         :edge-style="edgeStyle"
         :monitor="monitor.state.value"
         :reserve-counters="monitoring"
+        :region-groups="!!regionLevel"
         :selection="selection"
         :toggleable="toggleable"
         :enabled-overrides="levelOverrides"
@@ -459,6 +470,14 @@ defineExpose({
                 {{ c.label }}
               </UidBreadcrumbItem>
             </UidBreadcrumb>
+            <UidBadge
+              v-if="regionLevel?.join"
+              size="sm"
+              variant="info"
+              class="fl-nav__join"
+            >
+              {{ L.join }}: {{ regionLevel.join === 'all' ? L.joinAll : L.joinAny }}
+            </UidBadge>
           </div>
 
           <div

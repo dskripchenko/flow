@@ -43,6 +43,17 @@ export interface FlowLabels {
   emptyHint: string
   statuses: Record<string, string>
   types: Record<string, string>
+  /** A `parallel` node's join and its regions. */
+  join: string
+  joinAll: string
+  joinAny: string
+  joinUnset: string
+  regions: string
+  /** An edge's trigger (`FlowEdge.trigger`). */
+  trigger: string
+  triggerNone: string
+  triggerTimer: string
+  triggerEvent: string
   // Editor
   editor: string
   palette: string
@@ -156,8 +167,17 @@ export const en: FlowLabels = {
   currentPath: 'Current path',
   empty: 'Nothing to show',
   emptyHint: 'The process has no steps yet.',
-  statuses: { active: 'Active', done: 'Done', error: 'Error', waiting: 'Waiting', skipped: 'Skipped' },
-  types: { start: 'Start', end: 'End', state: 'State', task: 'Task', decision: 'Decision', subprocess: 'Sub-process', note: 'Note' },
+  join: 'Join',
+  joinAll: 'all regions',
+  joinAny: 'any region',
+  joinUnset: 'Not set',
+  regions: 'Regions',
+  trigger: 'Trigger',
+  triggerNone: 'None',
+  triggerTimer: 'Timer',
+  triggerEvent: 'Event',
+  statuses: { active: 'Active', done: 'Done', error: 'Error', waiting: 'Waiting', skipped: 'Skipped', unknown: 'Unknown', compensated: 'Compensated' },
+  types: { start: 'Start', end: 'End', state: 'State', task: 'Task', decision: 'Decision', subprocess: 'Sub-process', parallel: 'Parallel', timer: 'Timer', wait: 'Wait', any: 'Any state', note: 'Note' },
   editor: 'Process editor',
   palette: 'Elements',
   paletteHint: 'Drag onto the canvas or press to add',
@@ -270,8 +290,17 @@ export const ru: FlowLabels = {
   currentPath: 'Текущий путь',
   empty: 'Нечего показать',
   emptyHint: 'В процессе пока нет шагов.',
-  statuses: { active: 'Активен', done: 'Завершён', error: 'Ошибка', waiting: 'Ожидание', skipped: 'Пропущен' },
-  types: { start: 'Начало', end: 'Конец', state: 'Состояние', task: 'Задача', decision: 'Развилка', subprocess: 'Подпроцесс', note: 'Заметка' },
+  join: 'Завершение',
+  joinAll: 'все регионы',
+  joinAny: 'любой регион',
+  joinUnset: 'Не задано',
+  regions: 'Регионы',
+  trigger: 'Триггер',
+  triggerNone: 'Нет',
+  triggerTimer: 'Таймер',
+  triggerEvent: 'Событие',
+  statuses: { active: 'Активен', done: 'Завершён', error: 'Ошибка', waiting: 'Ожидание', skipped: 'Пропущен', unknown: 'Неизвестно', compensated: 'Компенсирован' },
+  types: { start: 'Начало', end: 'Конец', state: 'Состояние', task: 'Задача', decision: 'Развилка', subprocess: 'Подпроцесс', parallel: 'Параллельно', timer: 'Таймер', wait: 'Ожидание', any: 'Любое состояние', note: 'Заметка' },
   editor: 'Редактор процесса',
   palette: 'Элементы',
   paletteHint: 'Перетащите на холст или нажмите, чтобы добавить',

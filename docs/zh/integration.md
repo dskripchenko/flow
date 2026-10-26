@@ -52,7 +52,7 @@ Schema：`@dskripchenko/flow/schema/graph.schema.json`（JSON Schema 2020-12）�
 异常）即可让开关回滚；错误消息会显示在 toast 中。之后把更新后的模型作为 `graph` 传入
 （或保持不变：乐观状态会保留到 `graph` 变化为止）。
 
-`onToggle` 是 `persistToggle` 的已弃用名称（保留到 1.1）：它同样只调用一次，但请使用
+`onToggle` 是 `persistToggle` 的已弃用名称（保留到 2.0）：它同样只调用一次，但请使用
 `persistToggle` —— `onToggle` 是 `toggle` 事件的处理函数，该事件在持久化函数完成后触发。
 
 ## 子流程

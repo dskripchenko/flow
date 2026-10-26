@@ -22,7 +22,7 @@ IDs sind über Knoten, Kanten und Gruppen hinweg eindeutig.
 ```ts
 interface FlowNode {
   id: string
-  type: string                 // start | end | state | task | decision | subprocess | note | custom
+  type: string                 // start | end | state | task | decision | subprocess | parallel | timer | wait | any | note | custom
   label?: string
   description?: string         // eine zweite Zeile unter der Beschriftung
   position?: { x: number; y: number } // der Mittelpunkt; fehlt er, wird automatisch angeordnet
@@ -31,6 +31,7 @@ interface FlowNode {
   enabled?: boolean            // false: abgeblendet und durchgestrichen gezeichnet
   subgraph?: string | Graph    // ein Inline-Graph oder eine Referenz: macht den Knoten aufklappbar
   ports?: Port[]               // überschreibt die Ports des Typs
+  join?: 'all' | 'any'         // parallel: fertig, wenn alle Regionen fertig sind oder eine davon
 }
 ```
 
@@ -42,7 +43,18 @@ interface FlowNode {
 | `task` | Rechteck mit Icon-Kachel | |
 | `decision` | Raute | |
 | `subprocess` | Rechteck mit Teilprozess-Markierung | aufklappbar |
+| `parallel` | Rechteck mit Regionsfächern | aufklappbar; die Regionen sind die Gruppen oberster Ebene seines eingebetteten Teilgraphen; `join` an der Oberkante |
+| `timer` | Doppelkreis mit Stoppuhr | ein Zwischenereignis: Warten auf einen Timer; Beschriftung darunter |
+| `wait` | Doppelkreis mit Sanduhr | ein Zwischenereignis: Warten auf Eingabe oder eine Nachricht; Beschriftung darunter |
+| `any` | gestrichelter Kreis mit Sternchen | „beliebiger Zustand“: seine Kanten gelten aus jedem Zustand des Graphen; eine Quelle, aber nicht der Start |
 | `note` | gefaltetes Blatt | Anmerkung: nicht Teil der Ablaufprüfungen |
+
+Ein `parallel`-Knoten ist ein Zustand mit nebenläufigen Regionen. Geben Sie
+ihm einen eingebetteten `subgraph`, dessen Gruppen oberster Ebene (`groups`) die
+Regionen sind (jede mit eigenem Start): Der Knoten zeigt ein Fach pro Region,
+und beim Aufklappen werden die Gruppen als Regionsbahnen gezeichnet, mit der
+Join-Regel (`alle Regionen` / `eine Region`) in der Navigationsleiste. Mit einer
+Teilgraph-Referenz wird der Knoten ohne Fächer gezeichnet.
 
 ## Kanten
 
@@ -57,6 +69,7 @@ interface FlowEdge {
   condition?: string           // eine Bedingung; angezeigt, wenn keine Beschriftung da ist
   enabled?: boolean
   kind?: 'transition' | 'association' // association: gestrichelt, ohne Pfeil (eine Notiz an ihrem Knoten)
+  trigger?: 'timer' | 'event' // was den Übergang auslöst: ein Symbol im Kantenlabel (mit oder ohne Text)
   data?: Record<string, DataValue>
 }
 ```
@@ -123,10 +136,10 @@ const registry = createRegistry({
 ```
 
 Eine Typdefinition (`NodeTypeDef`): `title`, `shape` (`rect`, `rounded`,
-`circle`, `ring`, `diamond`, `note`, `pill`), eine feste `size` oder
+`circle`, `ring`, `diamond`, `note`, `pill`, `event`, `any`), eine feste `size` oder
 `minWidth`/`maxWidth`/`height`, `ports`, `icon` (ein Name aus `NODE_ICONS` oder
 eine Komponente über die Prop `nodeIcons`), `labelOutside`, `noIncoming`,
-`noOutgoing`, `annotation`, `drillable` und `locked` (der Editor lässt Benutzer
+`noOutgoing`, `annotation`, `drillable`, `regions` (Fächer und Join, wie `parallel`), `anyState` (eine Quelle, die nicht als Start zählt, wie `any`) und `locked` (der Editor lässt Benutzer
 solche Knoten weder ändern noch löschen). Übergeben Sie die Registry an die
 Komponenten und an `validateGraph` / `layoutGraph`.
 
@@ -148,7 +161,7 @@ const issues = validateGraph(graph, { registry })
 | `unknown-type` | warning | nicht in der Registry (als state gezeichnet) |
 | `missing-start`, `missing-end` | warning | abschaltbar mit `requireStartEnd: false` |
 | `start-incoming`, `end-outgoing` | warning | eine Kante in einen Start oder aus einem Ende |
-| `unreachable` | warning | von keinem Start aus erreichbar |
+| `unreachable` | warning | von keinem Start und keinem „beliebiger Zustand“-Knoten aus erreichbar |
 | `dead-end` | warning | ein Schritt ohne Ausgang |
 | `empty-label` | warning | ein Schritt ohne Beschriftung |
 

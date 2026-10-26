@@ -8,7 +8,18 @@
 export const GRAPH_VERSION = 1
 
 /** Built-in node types; any other string is a custom type from a registry. */
-export type BuiltinNodeType = 'start' | 'end' | 'state' | 'task' | 'decision' | 'subprocess' | 'note'
+export type BuiltinNodeType =
+  | 'start'
+  | 'end'
+  | 'state'
+  | 'task'
+  | 'decision'
+  | 'subprocess'
+  | 'parallel'
+  | 'timer'
+  | 'wait'
+  | 'any'
+  | 'note'
 
 export type NodeType = BuiltinNodeType | (string & {})
 
@@ -53,6 +64,11 @@ export interface FlowNode {
   ports?: Port[]
   /** A short secondary line under the label. */
   description?: string
+  /**
+   * A `parallel` node: when it is done — `all` its regions finished, or `any`
+   * of them. Shown on the node; no default (nothing is shown without it).
+   */
+  join?: 'all' | 'any'
 }
 
 export interface FlowEdge {
@@ -67,6 +83,8 @@ export interface FlowEdge {
   enabled?: boolean
   /** `association` is a dashed line without an arrow (a note to its node). */
   kind?: 'transition' | 'association'
+  /** What fires the transition, drawn as an icon on the edge: a timer or an external event. */
+  trigger?: 'timer' | 'event'
   data?: Record<string, DataValue>
 }
 
@@ -98,6 +116,16 @@ export type ElementKind = 'node' | 'edge' | 'group'
 export interface ElementRef {
   kind: ElementKind
   id: string
+}
+
+/**
+ * The regions of a `parallel` node: the top-level groups of its inline
+ * subgraph, in order. Empty for a subgraph reference or a graph without groups.
+ */
+export function regionsOf(node: FlowNode): FlowGroup[] {
+  const sub = node.subgraph
+  if (!sub || typeof sub === 'string') return []
+  return (sub.groups ?? []).filter((g) => !g.parent)
 }
 
 /** `enabled` treats a missing flag as enabled. */

@@ -51,7 +51,7 @@
         "type": {
           "type": "string",
           "default": "state",
-          "description": "Built in: start, end, state, task, decision, subprocess, note; any other name is a host-registered type."
+          "description": "Built in: start, end, state, task, decision, subprocess, parallel (a state with concurrent regions — the top-level groups of its inline subgraph), timer and wait (intermediate events), any (edges from it apply from every state of the graph), note; any other name is a host-registered type."
         },
         "label": { "type": "string" },
         "description": { "type": "string" },
@@ -63,7 +63,11 @@
           "description": "An inline graph, or a reference the host resolves (FlowView's `subgraphs` / `loadSubgraph`).",
           "oneOf": [{ "type": "string" }, { "$ref": "#" }]
         },
-        "ports": { "type": "array", "items": { "$ref": "#/$defs/port" } }
+        "ports": { "type": "array", "items": { "$ref": "#/$defs/port" } },
+        "join": {
+          "enum": ["all", "any"],
+          "description": "A parallel node: done when all its regions are done, or any of them. Shown on the node."
+        }
       }
     },
     "edge": {
@@ -79,6 +83,10 @@
         "condition": { "type": "string" },
         "enabled": { "type": "boolean", "default": true },
         "kind": { "enum": ["transition", "association"], "default": "transition" },
+        "trigger": {
+          "enum": ["timer", "event"],
+          "description": "What fires the transition, drawn as an icon on the edge."
+        },
         "data": { "$ref": "#/$defs/data" }
       }
     },

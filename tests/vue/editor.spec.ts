@@ -6,6 +6,7 @@ import { UidSelect } from '@dskripchenko/ui'
 import { createRegistry, type Graph } from '../../src/index'
 import { fromMermaid } from '../../src/mermaid'
 import { orderProcess } from '../fixtures/order'
+import { claimProcess } from '../fixtures/statechart'
 
 const wrappers: { unmount(): void }[] = []
 afterEach(() => {
@@ -195,5 +196,31 @@ describe('FlowEditor', () => {
     const ps = model(w).nodes.map((n) => n.position!)
     for (let i = 0; i < ps.length; i++)
       for (let j = i + 1; j < ps.length; j++) expect(Math.abs(ps[i]!.x - ps[j]!.x) >= 160 || Math.abs(ps[i]!.y - ps[j]!.y) >= 44, `${i} × ${j}`).toBe(true)
+  })
+
+  it('edits a parallel node join and an edge trigger', async () => {
+    const w = editor({ modelValue: structuredClone(claimProcess) })
+    await w.find('[data-node-id="review"]').trigger('pointerdown')
+    await flushPromises()
+    const field = (label: string) => w.findAllComponents(UidSelect).find((c) => c.element.closest('.uid-form-field')?.textContent?.includes(label))
+    const join = field('Join')!
+    expect(join).toBeDefined()
+    join.vm.$emit('update:modelValue', 'any')
+    await flushPromises()
+    expect(model(w).nodes.find((n) => n.id === 'review')!.join).toBe('any')
+    join.vm.$emit('update:modelValue', '')
+    await flushPromises()
+    expect(model(w).nodes.find((n) => n.id === 'review')!.join).toBeUndefined()
+
+    await w.find('[data-node-id="filing"]').trigger('pointerdown')
+    await flushPromises()
+    expect(field('Join')).toBeUndefined()
+
+    await w.find('.fl-edge-label[data-edge-id="e2"]').trigger('pointerdown')
+    await flushPromises()
+    const trigger = field('Trigger')!
+    trigger.vm.$emit('update:modelValue', 'timer')
+    await flushPromises()
+    expect(model(w).edges.find((e) => e.id === 'e2')!.trigger).toBe('timer')
   })
 })
