@@ -42,7 +42,7 @@ import {
   Redo2,
   Upload,
   Ellipsis,
-} from '@dskripchenko/ui/icons'
+} from 'lucide-vue-next'
 import {
   History,
   alignNodes,

@@ -1,5 +1,13 @@
 # @dskripchenko/flow
 
+## 1.1.1 — 2026-10-26
+
+- **The icons are bundled.** The Vue components import their lucide icons
+  directly and the build bundles them (the ISC notice is kept), instead of
+  importing `@dskripchenko/ui/icons` at runtime: the package loads from an ESM
+  CDN without `lucide-vue-next` in the import map. `NODE_ICONS`,
+  `STATUS_ICONS` and `TRIGGER_ICONS` are unchanged.
+
 ## 1.1.0 — 2026-10-26
 
 Statechart building blocks. Everything is additive: graphs and snapshots from

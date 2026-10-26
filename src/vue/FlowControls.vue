@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** The zoom/fit/minimap bar in the canvas corner, on kit buttons. */
 import { UidButton, UidTooltip } from '@dskripchenko/ui'
-import { Map as MapIcon, Maximize, Minus, Plus } from '@dskripchenko/ui/icons'
+import { Map as MapIcon, Maximize, Minus, Plus } from 'lucide-vue-next'
 import type { FlowLabels } from './labels'
 
 defineProps<{ labels: FlowLabels; zoom: number; minimap: boolean }>()

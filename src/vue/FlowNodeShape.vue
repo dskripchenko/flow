@@ -5,7 +5,7 @@
  * label, and the monitoring decorations: status chip, badge, counter, halo.
  */
 import { computed, type Component } from 'vue'
-import { Layers } from '@dskripchenko/ui/icons'
+import { Layers } from 'lucide-vue-next'
 import { REGION_STRIP, type FlowNode, type NodeGeometry, type NodeRunState, type NodeTypeDef } from '../index'
 import { NODE_ICONS, STATUS_ICONS } from './icons'
 import type { FlowLabels } from './labels'

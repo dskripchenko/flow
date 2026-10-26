@@ -5,7 +5,7 @@
  */
 import { computed } from 'vue'
 import { UidBadge, UidButton, UidDescriptionItem, UidDescriptionList, UidSwitch, UidTag } from '@dskripchenko/ui'
-import { SquareArrowOutUpRight } from '@dskripchenko/ui/icons'
+import { SquareArrowOutUpRight } from 'lucide-vue-next'
 import { STATUS_TONES, toEpoch, type DataValue, type FlowEdge, type FlowNode, type Graph, type MonitorState } from '../index'
 import type { FlowLabels } from './labels'
 

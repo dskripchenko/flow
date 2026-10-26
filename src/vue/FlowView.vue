@@ -16,7 +16,7 @@ import {
   UidTooltip,
   useToast,
 } from '@dskripchenko/ui'
-import { ChevronLeft, RefreshCw } from '@dskripchenko/ui/icons'
+import { ChevronLeft, RefreshCw } from 'lucide-vue-next'
 import { STATUS_TONES, defaultRegistry, isEnabled, statusSummary, type ElementRef, type FlowEdge, type FlowNode, type Graph, type MonitorSnapshot, type MonitorState, type NodeTypeRegistry } from '../index'
 import FlowCanvas from './FlowCanvas.vue'
 import FlowDetails from './FlowDetails.vue'
