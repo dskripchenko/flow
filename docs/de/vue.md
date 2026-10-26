@@ -38,7 +38,7 @@ Detail-Drawer.
 | `nodeRenderers` | `Record<type, Component>` | `{}` | eigene Darstellung von Knoten |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | Icons für Typen |
 | `statusTones` | `Record<status, tone>` | — | `accent`, `success`, `danger`, `warning`, `info`, `neutral` |
-| `locale` | `'en' \| 'ru' \| string` | `'en'` | Sprache der Oberfläche (auch die des Kits) |
+| `locale` | `'en' \| 'ru' \| string` | Kit-Locale des Hosts, sonst `'en'` | Sprache der Oberfläche. Nicht gesetzt: folgt einem übergeordneten `UidLocaleProvider` (ru-* → Russisch) und lässt die Kit-Locale des Hosts unangetastet; gesetzt: setzt auch die Kit-Locale innen |
 | `labels` | `Partial<FlowLabels>` | — | überschreibt beliebige Texte |
 | `wheel` | `'zoom' \| 'pan'` | `'zoom'` | was das einfache Mausrad tut (Ctrl/⌘ + Mausrad zoomt immer) |
 | `minZoom`, `maxZoom` | `number` | `0.15`, `2.5` | |

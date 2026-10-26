@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createApp } from 'vue'
+import { createApp, defineComponent, h } from 'vue'
+import { UidLocaleProvider, ru as uidRu } from '@dskripchenko/ui'
 import { FlowView, FlowNodeShape, en, mountFlow, type ToggleChange } from '../../src/vue'
 import { defaultRegistry, layoutGraph, type MonitorSnapshot } from '../../src/index'
 import { orderProcess, snapshotAt } from '../fixtures/order'
@@ -197,6 +198,30 @@ describe('FlowView: host integration', () => {
     expect(el.querySelector('[data-node-id="refund"]')).toBeNull()
     handle.unmount()
     expect(el.querySelector('[data-node-id]')).toBeNull()
+  })
+})
+
+describe('FlowView: locale', () => {
+  const Host = (props: Record<string, unknown>, locale: unknown) =>
+    defineComponent({
+      render: () => h(UidLocaleProvider, { locale } as never, { default: () => h(FlowView, { graph: orderProcess, toastProvider: false, state: snapshotAt(2), ...props }) }),
+    })
+
+  it('follows a host kit locale and does not override it', async () => {
+    const hostLocale = { ...uidRu, drawer: { close: 'HOST-CLOSE' } }
+    const w = mount(Host({}, hostLocale), { attachTo: document.body })
+    wrappers.push(w)
+    expect(w.find('.fl-status').text()).toContain('Обновлено')
+    await tap(w as never, '[data-node-id="new"]')
+    await flushPromises()
+    expect(document.body.querySelector('.uid-drawer__close')?.getAttribute('aria-label')).toBe('HOST-CLOSE')
+  })
+
+  it('defaults to English without a host provider, and an explicit locale wins', () => {
+    expect(view({ state: snapshotAt(2) }).find('.fl-status').text()).toContain('Updated')
+    const w = mount(Host({ locale: 'en' }, uidRu), { attachTo: document.body })
+    wrappers.push(w)
+    expect(w.find('.fl-status').text()).toContain('Updated')
   })
 })
 

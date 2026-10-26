@@ -37,7 +37,7 @@ import '@dskripchenko/flow/style.css'
 | `nodeRenderers` | `Record<type, Component>` | `{}` | своя отрисовка узлов |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | иконки для типов |
 | `statusTones` | `Record<status, tone>` | — | `accent`, `success`, `danger`, `warning`, `info`, `neutral` |
-| `locale` | `'en' \| 'ru' \| string` | `'en'` | язык интерфейса (и кита тоже) |
+| `locale` | `'en' \| 'ru' \| string` | локаль кита у хоста, иначе `'en'` | язык интерфейса. Не задан — следует родительскому `UidLocaleProvider` (ru-* → русский) и не трогает локаль кита хоста; задан — задаёт и локаль кита внутри |
 | `labels` | `Partial<FlowLabels>` | — | замена любой строки |
 | `wheel` | `'zoom' \| 'pan'` | `'zoom'` | что делает обычное колесо мыши (Ctrl/⌘ + колесо всегда масштабирует) |
 | `minZoom`, `maxZoom` | `number` | `0.15`, `2.5` | |

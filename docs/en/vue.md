@@ -37,7 +37,7 @@ switches, drill-down into sub-processes and a details drawer.
 | `nodeRenderers` | `Record<type, Component>` | `{}` | custom node drawing |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | icons for types |
 | `statusTones` | `Record<status, tone>` | — | `accent`, `success`, `danger`, `warning`, `info`, `neutral` |
-| `locale` | `'en' \| 'ru' \| string` | `'en'` | interface language (also the kit's) |
+| `locale` | `'en' \| 'ru' \| string` | host's kit locale, else `'en'` | interface language. Unset: follows a parent `UidLocaleProvider` (ru-* → Russian) and leaves the kit's locale to the host; set: also sets the kit's locale inside |
 | `labels` | `Partial<FlowLabels>` | — | override any string |
 | `wheel` | `'zoom' \| 'pan'` | `'zoom'` | what the plain mouse wheel does (Ctrl/⌘ + wheel always zooms) |
 | `minZoom`, `maxZoom` | `number` | `0.15`, `2.5` | |

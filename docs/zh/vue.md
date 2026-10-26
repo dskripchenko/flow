@@ -35,7 +35,7 @@ import '@dskripchenko/flow/style.css'
 | `nodeRenderers` | `Record<type, Component>` | `{}` | 自定义节点绘制 |
 | `nodeIcons` | `Record<type \| icon, Component>` | `{}` | 类型的图标 |
 | `statusTones` | `Record<status, tone>` | — | `accent`、`success`、`danger`、`warning`、`info`、`neutral` |
-| `locale` | `'en' \| 'ru' \| string` | `'en'` | 界面语言（同时也是 kit 的语言） |
+| `locale` | `'en' \| 'ru' \| string` | 宿主的 kit 语言，否则 `'en'` | 界面语言。未设置：跟随上层 `UidLocaleProvider`（ru-* → 俄语），不覆盖宿主的 kit 语言；设置时：同时设置组件内部的 kit 语言 |
 | `labels` | `Partial<FlowLabels>` | — | 覆盖任意文本 |
 | `wheel` | `'zoom' \| 'pan'` | `'zoom'` | 普通鼠标滚轮的作用（Ctrl/⌘ + 滚轮始终缩放） |
 | `minZoom`、`maxZoom` | `number` | `0.15`、`2.5` | |

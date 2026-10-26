@@ -1,6 +1,6 @@
 {
   "name": "@dskripchenko/flow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Process and state-machine graphs: a zero-dependency TypeScript core (model, validation, layered layout, monitoring state, polling, undoable editing commands) and Vue components on @dskripchenko/ui — viewer, live monitoring overlay, drill-down and a visual editor",
   "keywords": [
     "flow",
@@ -85,7 +85,7 @@
   },
   "peerDependencies": {
     "@dskripchenko/diagrams": "^1.1.0",
-    "@dskripchenko/ui": "^1.14.0",
+    "@dskripchenko/ui": "^1.15.0",
     "vue": "^3.4.0"
   },
   "peerDependenciesMeta": {
@@ -102,7 +102,7 @@
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
     "@dskripchenko/diagrams": "^1.1.0",
-    "@dskripchenko/ui": "^1.14.0",
+    "@dskripchenko/ui": "^1.15.0",
     "@eslint/js": "^10.0.1",
     "@microsoft/api-extractor": "^7.59.4",
     "@types/node": "^22.20.5",

@@ -12,7 +12,6 @@ import {
   UidBreadcrumbItem,
   UidButton,
   UidDrawer,
-  UidLocaleProvider,
   UidMenu,
   UidMenuItem,
   UidMenuSeparator,
@@ -21,8 +20,6 @@ import {
   UidTabs,
   UidToastProvider,
   UidTooltip,
-  en as uidEn,
-  ru as uidRu,
 } from '@dskripchenko/ui'
 import {
   AlignCenterVertical,
@@ -85,6 +82,7 @@ import FlowImportDialog from './editor/FlowImportDialog.vue'
 import FlowIssues from './editor/FlowIssues.vue'
 import FlowPalette from './editor/FlowPalette.vue'
 import FlowProperties from './editor/FlowProperties.vue'
+import { useLocaleScope } from './localeScope'
 import { resolveLabels, type FlowLabels } from './labels'
 
 export interface ChangeEvent {
@@ -98,7 +96,7 @@ export interface ChangeEvent {
   source: 'edit' | 'undo' | 'redo'
 }
 
-// The root is the kit's locale provider (a fragment): attributes go to the real root.
+// The root is a locale scope (a fragment): attributes go to the real root.
 defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
@@ -117,6 +115,7 @@ const props = withDefaults(
     edgeStyle?: 'orthogonal' | 'smooth'
     nodeRenderers?: Record<string, Component>
     nodeIcons?: Record<string, Component>
+    /** Interface language; by default the host's kit locale (a parent UidLocaleProvider), else English. Setting it also sets the kit's locale inside. */
     locale?: 'en' | 'ru' | string
     labels?: Partial<FlowLabels>
     minimap?: boolean
@@ -136,7 +135,7 @@ const props = withDefaults(
     edgeStyle: 'orthogonal',
     nodeRenderers: () => ({}),
     nodeIcons: () => ({}),
-    locale: 'en',
+    locale: undefined,
     labels: undefined,
     minimap: false,
     mermaid: undefined,
@@ -160,8 +159,8 @@ defineSlots<{
   properties?(props: { selection: string[]; graph: Graph; path: string[] }): unknown
 }>()
 
-const L = computed(() => resolveLabels(props.locale, props.labels))
-const kitLocale = computed(() => (props.locale === 'ru' ? uidRu : uidEn))
+const { lang, wrapper, wrapperProps } = useLocaleScope(() => props.locale)
+const L = computed(() => resolveLabels(lang.value, props.labels))
 
 // ---------------------------------------------------------------------------
 // Model, history, navigation
@@ -645,13 +644,16 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
 </script>
 
 <template>
-  <UidLocaleProvider :locale="kitLocale">
+  <component
+    :is="wrapper"
+    v-bind="wrapperProps"
+  >
     <div
       ref="rootEl"
       v-bind="$attrs"
       class="fl-editor"
       :class="{ 'is-narrow': narrow, 'is-readonly': readonly }"
-      :lang="locale"
+      :lang="lang"
       role="application"
       :aria-label="L.editor"
       @keydown="onKeyDown"
@@ -760,7 +762,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
         >
           <UidButton
             size="sm"
-            variant="ghost"
+            :variant="snapOn ? 'secondary' : 'ghost'"
             :icon="Magnet"
             :aria-label="L.snapToGrid"
             :aria-pressed="snapOn"
@@ -1054,5 +1056,5 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
       <FlowContextMenu ref="menu" />
       <UidToastProvider v-if="toastProvider" />
     </div>
-  </UidLocaleProvider>
+  </component>
 </template>

@@ -86,7 +86,7 @@ Während der Eingabe in ein Feld werden Tastenkürzel ignoriert.
 | `direction`, `edgeStyle` | | | wie in FlowView |
 | `nodeRenderers`, `nodeIcons` | | | wie in FlowView |
 | `mermaid` | `(source) => Graph` | — | aktiviert „Mermaid importieren“: übergeben Sie `fromMermaid` |
-| `locale`, `labels` | | `'en'` | |
+| `locale`, `labels` | | wie in FlowView | |
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | der Name der exportierten Datei |
 | `toastProvider` | `boolean` | `true` | |
