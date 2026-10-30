@@ -18,6 +18,18 @@ export type NodeShape =
   | 'event'
   /** A dashed circle: the "any state" source. */
   | 'any'
+  /** An EPC event. */
+  | 'hexagon'
+  /** A DFD process, an EPC organisational unit. */
+  | 'ellipse'
+  /** A small circle with a glyph (`glyph`): an EPC connector (AND, OR, XOR). */
+  | 'operator'
+  /** A DFD data store: open on the right. */
+  | 'store'
+  /** A DFD external entity: a box with a second outline behind it. */
+  | 'entity'
+  /** A document with a wavy bottom edge (EPC). */
+  | 'document'
 
 export interface NodeTypeDef {
   /** The type's name in the UI (palette, details). */
@@ -33,6 +45,10 @@ export interface NodeTypeDef {
   ports?: Port[]
   /** An icon name the renderer maps to a glyph (`play`, `square`, `cog`, …). */
   icon?: string
+  /** A short text drawn in the middle of an `operator` (`∧`, `∨`, `×`). */
+  glyph?: string
+  /** Shows the node's number (`data.number`: A1, P2, D3…) in a corner, as IDEF0 and DFD number boxes. */
+  numbered?: boolean
   /** The label is drawn outside the outline (start/end circles). */
   labelOutside?: boolean
   /** Edges cannot end here (`start`) or start here (`end`). */

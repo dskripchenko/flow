@@ -585,6 +585,22 @@ try {
   }
 
   // ------------------------------------------------------------ standalone
+  // Notations: EPC, DFD, IDEF0 — drawn clean, and their palettes in the editor.
+  for (const notation of ['epc', 'dfd', 'idef0']) {
+    for (const theme of ['light', 'dark']) {
+      const { page, errors, close } = await open(`?view=${notation}&theme=${theme}`)
+      check(`${notation}/${theme}: renders without errors`, errors.length === 0, errors.join('; '))
+      const geo = await geometry(page)
+      check(`${notation}/${theme}: no overlapping nodes or labels, no edges through nodes`, geo.problems.length === 0, geo.problems.slice(0, 6).join('; '))
+      await shot(page, `${notation}-${theme}`)
+      await close()
+    }
+    const { page, errors, close } = await open(`?view=editor&notation=${notation}`)
+    const palette = await page.locator('.fl-palette__item').count()
+    check(`${notation}: the editor offers the notation's palette`, palette === { epc: 11, dfd: 4, idef0: 3 }[notation] && errors.length === 0, `${palette} items; ${errors.join('; ')}`)
+    await close()
+  }
+
   for (const theme of ['light', 'dark']) {
     const { page, errors, close } = await open(`standalone.html?theme=${theme}`)
     await page.waitForSelector('.fl-node.is-current')

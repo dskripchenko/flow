@@ -34,7 +34,12 @@ const emit = defineEmits<{ enter: [] }>()
 const w = computed(() => props.geometry.width)
 const h = computed(() => props.geometry.height)
 const shape = computed(() => props.def.shape)
-const round = computed(() => shape.value === 'circle' || shape.value === 'ring' || shape.value === 'event' || shape.value === 'any')
+const round = computed(() => shape.value === 'circle' || shape.value === 'ring' || shape.value === 'event' || shape.value === 'any' || shape.value === 'operator')
+/** The node's number (IDEF0 box, DFD process or store), when its type shows one. */
+const number = computed(() => {
+  const n = props.def.numbered ? props.node.data?.number : undefined
+  return typeof n === 'string' || typeof n === 'number' ? String(n) : ''
+})
 /** A `parallel` node's region compartments, and the height above them. */
 const regions = computed(() => props.geometry.regions ?? [])
 const bodyH = computed(() => (regions.value.length ? h.value - REGION_STRIP : h.value))
@@ -67,6 +72,14 @@ const outline = computed(() => {
       const f = 12
       return `M 0 0 H ${W - f} L ${W} ${f} V ${H} H 0 Z`
     }
+    case 'hexagon': {
+      const c = Math.min(18, W / 4, H / 2)
+      return `M ${c} 0 H ${W - c} L ${W} ${H / 2} L ${W - c} ${H} H ${c} L 0 ${H / 2} Z`
+    }
+    case 'document': {
+      const wave = Math.min(8, H / 6)
+      return `M 0 0 H ${W} V ${H - wave} C ${W * 0.75} ${H - wave * 3} ${W * 0.25} ${H + wave} 0 ${H - wave} Z`
+    }
     default:
       return ''
   }
@@ -84,6 +97,8 @@ const text = computed(() => {
   }
   const left = showTile.value ? 52 : 16
   const centred = shape.value === 'diamond' || (!showTile.value && shape.value !== 'note')
+  // A store's number has a compartment of its own: the label centres in the rest.
+  if (shape.value === 'store' && number.value) return { x: 36 + (w.value - 36) / 2, y: (bodyH.value - total) / 2 + 14, anchor: 'middle' as const }
   return {
     x: centred ? w.value / 2 : left,
     y: (bodyH.value - total) / 2 + 14,
@@ -227,6 +242,63 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
         :r="w / 2 - 1"
       />
     </template>
+    <template v-else-if="shape === 'operator'">
+      <circle
+        class="fl-node__body"
+        :cx="w / 2"
+        :cy="h / 2"
+        :r="w / 2"
+      />
+      <text
+        class="fl-node__glyph-text"
+        :x="w / 2"
+        :y="h / 2"
+        text-anchor="middle"
+        dominant-baseline="central"
+      >{{ def.glyph }}</text>
+    </template>
+    <template v-else-if="shape === 'ellipse'">
+      <ellipse
+        class="fl-node__shadow"
+        :cx="w / 2"
+        :cy="h / 2 + 2"
+        :rx="w / 2"
+        :ry="h / 2"
+      />
+      <ellipse
+        class="fl-node__body"
+        :cx="w / 2"
+        :cy="h / 2"
+        :rx="w / 2"
+        :ry="h / 2"
+      />
+    </template>
+    <template v-else-if="shape === 'store'">
+      <!-- Open on the right: the store goes on. A compartment holds the number. -->
+      <rect
+        class="fl-node__body fl-node__body--plain"
+        :width="w"
+        :height="h"
+      />
+      <path
+        class="fl-node__store-line"
+        :d="`M ${w} 0 H 0 V ${h} H ${w}${number ? ` M 36 0 V ${h}` : ''}`"
+      />
+    </template>
+    <template v-else-if="shape === 'entity'">
+      <rect
+        class="fl-node__body"
+        :x="5"
+        :y="5"
+        :width="w - 5"
+        :height="h - 5"
+      />
+      <rect
+        class="fl-node__body"
+        :width="w - 5"
+        :height="h - 5"
+      />
+    </template>
     <template v-else-if="outline">
       <path
         class="fl-node__shadow"
@@ -266,6 +338,15 @@ const statusTitle = computed(() => (status.value ? (props.labels.statuses[status
       :stroke-width="2.4"
       aria-hidden="true"
     />
+
+    <!-- Number box: IDEF0 at the bottom right, DFD stores in their compartment, processes at the top. -->
+    <text
+      v-if="number"
+      class="fl-node__number"
+      :x="shape === 'store' ? 18 : shape === 'ellipse' ? w / 2 : w - 8"
+      :y="shape === 'store' ? h / 2 + 4 : shape === 'ellipse' ? 16 : h - 8"
+      :text-anchor="shape === 'store' || shape === 'ellipse' ? 'middle' : 'end'"
+    >{{ number }}</text>
 
     <!-- Icon tile. -->
     <g

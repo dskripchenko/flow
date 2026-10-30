@@ -68,7 +68,7 @@ export function facingSide(box: NodeBox, toward: Point, prefer: 'vertical' | 'ho
 
 /** Whether anchors on this outline may be spread along a side. */
 export function spreadable(shape: NodeShape): boolean {
-  return shape === 'rect' || shape === 'rounded' || shape === 'note' || shape === 'pill'
+  return shape === 'rect' || shape === 'rounded' || shape === 'note' || shape === 'pill' || shape === 'hexagon' || shape === 'store' || shape === 'entity' || shape === 'document'
 }
 
 export interface RouteInput {
@@ -163,7 +163,7 @@ export function clipToShape(box: NodeBox, shape: NodeShape, toward: Point): Poin
   if (dx === 0 && dy === 0) return { x: box.x, y: box.y + box.height / 2 }
   const w = box.width / 2
   const h = box.height / 2
-  if (shape === 'circle' || shape === 'ring') {
+  if (shape === 'circle' || shape === 'ring' || shape === 'ellipse' || shape === 'operator') {
     const t = 1 / Math.sqrt((dx * dx) / (w * w) + (dy * dy) / (h * h))
     return { x: box.x + dx * t, y: box.y + dy * t }
   }

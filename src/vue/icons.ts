@@ -17,6 +17,7 @@ import {
   Hourglass,
   Layers,
   MessageSquare,
+  Monitor,
   Play,
   SkipForward,
   Square,
@@ -42,6 +43,7 @@ export const NODE_ICONS: Readonly<Record<string, Component>> = {
   timer: Timer,
   wait: Hourglass,
   any: Asterisk,
+  system: Monitor,
 }
 
 export const STATUS_ICONS: Readonly<Record<string, Component>> = {

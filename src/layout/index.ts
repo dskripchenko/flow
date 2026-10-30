@@ -156,8 +156,14 @@ export function layoutGraph(graph: Graph, options: LayoutOptions = {}): GraphLay
   let labelAt = new Map<string, Point>()
   let groupBoxes = new Map<string, NodeBox>()
 
+  // Satellites (an IDEF0 control above its box, a mechanism below) are placed
+  // beside the node they serve, not in the flow.
+  const satellites = options.ignorePositions || fixed.length === 0 ? findSatellites(graph, edges, registry, direction) : new Map<string, Satellite>()
+  const flowGraph = satellites.size > 0 ? { ...graph, nodes: graph.nodes.filter((n) => !satellites.has(n.id)) } : graph
+  const flowEdges = satellites.size > 0 ? edges.filter((e) => !satellites.has(e.from) && !satellites.has(e.to)) : edges
+
   if (fixed.length < graph.nodes.length) {
-    let result = runLayered(graph, sized, edges, labels, direction, groupIds, options)
+    let result = runLayered(flowGraph, sized, flowEdges, labels, direction, groupIds, options)
     // Back edges go through a channel beside the graph (routeEdges): lay the
     // flow out again without them, so they leave no gaps across it.
     const back = new Set(
@@ -166,13 +172,14 @@ export function layoutGraph(graph: Graph, options: LayoutOptions = {}): GraphLay
         .filter((e) => isBehind(result.nodes.get(e.from)!, result.nodes.get(e.to)!, direction))
         .map((e) => e.id),
     )
-    if (back.size > 0) result = runLayered(graph, sized, edges.filter((e) => !back.has(e.id)), labels, direction, groupIds, options)
+    if (back.size > 0) result = runLayered(flowGraph, sized, flowEdges.filter((e) => !back.has(e.id)), labels, direction, groupIds, options)
     for (const [id, b] of result.nodes) centres.set(id, { x: b.x, y: b.y })
     for (const [id, r] of result.edges) {
       waypoints.set(id, r.points)
       if (r.label) labelAt.set(id, r.label)
     }
     groupBoxes = new Map([...result.clusters].map(([id, b]) => [id, b]))
+    placeSatellites(satellites, centres, sized, direction)
     if (fixed.length > 0) {
       // Partial layout: fixed nodes keep their place; the rest keep their
       // place relative to the layout, shifted to line up with the fixed ones.
@@ -556,4 +563,81 @@ export function boundsOf(nodes: Map<string, NodeBox>, edges: Map<string, EdgeGeo
   }
   if (!Number.isFinite(x0)) return { x: 0, y: 0, width: 0, height: 0 }
   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+}
+
+interface Satellite {
+  /** The node it serves. */
+  anchor: string
+  /** Before (above / left of) the anchor, or after it. */
+  before: boolean
+}
+
+/**
+ * Nodes that only feed (or only take from) a port on the side of another
+ * node across the flow — an IDEF0 control on top, a mechanism below. They
+ * are laid out next to that side instead of as a step of the flow.
+ */
+function findSatellites(graph: Graph, edges: FlowEdge[], registry: NodeTypeRegistry, direction: Direction): Map<string, Satellite> {
+  const across: PortSide[] = direction === 'LR' ? ['top', 'bottom'] : ['left', 'right']
+  const degree = new Map<string, number>()
+  for (const e of edges) {
+    degree.set(e.from, (degree.get(e.from) ?? 0) + 1)
+    degree.set(e.to, (degree.get(e.to) ?? 0) + 1)
+  }
+  const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+  const out = new Map<string, Satellite>()
+  for (const e of edges) {
+    for (const [self, other, port] of [
+      [e.from, e.to, e.toPort],
+      [e.to, e.from, e.fromPort],
+    ] as const) {
+      if (!port || degree.get(self) !== 1 || out.has(other)) continue
+      const node = byId.get(self)
+      const target = byId.get(other)
+      if (!node || !target || node.group !== target.group) continue
+      const side = portsOf(registry, target).find((p) => p.id === port)?.side
+      if (side && across.includes(side)) out.set(self, { anchor: other, before: side === across[0] })
+    }
+  }
+  // A node cannot both serve and be served.
+  for (const [id, s] of out) if (out.has(s.anchor)) out.delete(id)
+  return out
+}
+
+function placeSatellites(satellites: Map<string, Satellite>, centres: Map<string, Point>, sized: Map<string, { width: number; height: number }>, direction: Direction): void {
+  const GAP = 48
+  const SPREAD = 24
+  const groups = new Map<string, string[]>()
+  for (const [id, s] of satellites) {
+    const key = `${s.anchor}|${s.before}`
+    groups.set(key, [...(groups.get(key) ?? []), id])
+  }
+  const placed: { id: string; box: NodeBox }[] = [...centres].map(([id, c]) => ({ id, box: { ...c, width: sized.get(id)!.width, height: sized.get(id)!.height } }))
+  for (const [key, ids] of groups) {
+    const [anchorId, before] = [key.slice(0, key.lastIndexOf('|')), key.endsWith('|true')]
+    const a = centres.get(anchorId)
+    if (!a) continue
+    const as = sized.get(anchorId)!
+    // Side by side across the anchor's side, centred on it.
+    const along = (id: string) => (direction === 'LR' ? sized.get(id)!.width : sized.get(id)!.height)
+    const total = ids.reduce((t, id) => t + along(id), 0) + SPREAD * (ids.length - 1)
+    let cursor = -total / 2
+    for (const id of ids) {
+      const s = sized.get(id)!
+      const offset = cursor + along(id) / 2
+      cursor += along(id) + SPREAD
+      const box: NodeBox =
+        direction === 'LR'
+          ? { x: a.x + offset, y: a.y + (before ? -1 : 1) * (as.height / 2 + GAP + s.height / 2), width: s.width, height: s.height }
+          : { x: a.x + (before ? -1 : 1) * (as.width / 2 + GAP + s.width / 2), y: a.y + offset, width: s.width, height: s.height }
+      // Further out while it would cover another node.
+      let guard = 0
+      while (placed.some((p) => p.id !== anchorId && overlaps(p.box, box, 12)) && guard++ < 200) {
+        if (direction === 'LR') box.y += before ? -12 : 12
+        else box.x += before ? -12 : 12
+      }
+      centres.set(id, { x: box.x, y: box.y })
+      placed.push({ id, box })
+    }
+  }
 }

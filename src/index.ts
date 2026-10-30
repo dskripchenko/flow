@@ -35,6 +35,7 @@ export {
   type NodeTypeDef,
   type NodeTypeRegistry,
 } from './model/registry'
+export { NOTATIONS, EPC_TYPES, DFD_TYPES, IDEF0_TYPES, IDEF0_PORTS, notationRegistry, type Notation } from './model/notations'
 export { issuesByElement, validateGraph, type Issue, type IssueCode, type IssueSeverity, type ValidateOptions } from './model/validate'
 
 export {
