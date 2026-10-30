@@ -70,6 +70,7 @@ const poll = {
 | Model | [en](docs/en/model.md) | [ru](docs/ru/model.md) | [de](docs/de/model.md) | [zh](docs/zh/model.md) |
 | Monitoring and polling | [en](docs/en/monitoring.md) | [ru](docs/ru/monitoring.md) | [de](docs/de/monitoring.md) | [zh](docs/zh/monitoring.md) |
 | Vue components | [en](docs/en/vue.md) | [ru](docs/ru/vue.md) | [de](docs/de/vue.md) | [zh](docs/zh/vue.md) |
+| Notations: EPC, DFD, IDEF0 | [en](docs/en/notations.md) | [ru](docs/ru/notations.md) | [de](docs/de/notations.md) | [zh](docs/zh/notations.md) |
 | Editor | [en](docs/en/editor.md) | [ru](docs/ru/editor.md) | [de](docs/de/editor.md) | [zh](docs/zh/editor.md) |
 | Host integration | [en](docs/en/integration.md) | [ru](docs/ru/integration.md) | [de](docs/de/integration.md) | [zh](docs/zh/integration.md) |
 | Standalone | [en](docs/en/standalone.md) | [ru](docs/ru/standalone.md) | [de](docs/de/standalone.md) | [zh](docs/zh/standalone.md) |
