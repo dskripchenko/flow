@@ -1,5 +1,11 @@
 # @dskripchenko/flow
 
+## 1.2.0
+
+### Minor Changes
+
+- a4f4f09: Notations: `NOTATIONS.epc`, `.dfd` and `.idef0` — node types, palettes and directions for event-driven process chains, data flow diagrams and IDEF0 function models (`notationRegistry(name)` builds the registry); new outlines `hexagon`, `ellipse`, `operator` (with a `glyph`), `store`, `entity` and `document`; `numbered` types show `data.number`. The layout places a node that only feeds (or only takes from) a port across the flow above or below its node, so IDEF0 controls and mechanisms sit over and under their box.
+
 ## 1.1.1 — 2026-10-26
 
 - **The icons are bundled.** The Vue components import their lucide icons
@@ -14,6 +20,7 @@ Statechart building blocks. Everything is additive: graphs and snapshots from
 1.0 parse, validate and draw as before.
 
 ### Added
+
 - **`parallel` node type** — a state with concurrent regions. Its regions are
   the top-level groups of its inline `subgraph`: the node shows one compartment
   per region under its label, with dashed dividers, and drilling in draws the
@@ -30,7 +37,7 @@ Statechart building blocks. Everything is additive: graphs and snapshots from
 - **Statuses `unknown`** (amber, a question mark — the outcome is not known)
   **and `compensated`** (neutral, an undo glyph) in the default tones, icons
   and labels: no `statusTones` needed.
-- Editor: a *Join* field for parallel nodes, a *Trigger* field for edges; the
+- Editor: a _Join_ field for parallel nodes, a _Trigger_ field for edges; the
   new types in the palette.
 - `NodeTypeDef.regions` and `NodeTypeDef.anyState` for custom types; shapes
   `event` and `any`; `NavigationLevel.type` / `.join`.
@@ -39,11 +46,13 @@ Statechart building blocks. Everything is additive: graphs and snapshots from
   (still any string).
 
 ### Fixed
+
 - Status chips: the tone fill no longer leaks into the icon's own circles, and
   an amber chip has a dark glyph — the `waiting` clock was unreadable in the
   dark theme.
 
 ### Not changed
+
 - The deprecated `onToggle`-as-persist-function alias from 1.0.2 stays: its
   removal would break hosts in a minor release; it moves to 2.0.
 

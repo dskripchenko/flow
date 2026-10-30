@@ -1,6 +1,6 @@
 {
   "name": "@dskripchenko/flow",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Process and state-machine graphs: a zero-dependency TypeScript core (model, validation, layered layout, monitoring state, polling, undoable editing commands) and Vue components on @dskripchenko/ui — viewer, live monitoring overlay, drill-down and a visual editor",
   "keywords": [
     "flow",
