@@ -398,7 +398,8 @@ function distribute(axis: 'horizontal' | 'vertical'): void {
 function autoLayout(): void {
   const g = level.value
   const fresh = layoutGraph(g, { registry: props.registry, direction: canvas.value?.layout.direction ?? 'LR', routing: props.edgeStyle === 'smooth' ? 'spline' : 'orthogonal', ignorePositions: true })
-  if (run(layoutCommand(fresh))) setTimeout(() => canvas.value?.fit(true), 30)
+  // A long process laid out anew opens readable from its start, not shrunk to fit.
+  if (run(layoutCommand(fresh))) setTimeout(() => canvas.value?.fitReadable(true), 30)
 }
 function toggleEnabled(): void {
   const ids = selection.value
@@ -515,7 +516,7 @@ function openImport(mode: 'json' | 'mermaid'): void {
 function onImport(g: Graph): void {
   run({ type: 'replace', graph: g })
   select([])
-  setTimeout(() => canvas.value?.fit(true), 30)
+  setTimeout(() => canvas.value?.fitReadable(true), 30)
 }
 function exportJson(): void {
   const json = stringifyGraph(root.value)

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { FlowEditor, type ChangeEvent } from '../../src/vue'
 import { UidSelect } from '@dskripchenko/ui'
@@ -300,6 +300,25 @@ describe('FlowEditor', () => {
     vm.undo()
     await flushPromises()
     expect(vm.canRedo).toBe(true)
+  })
+
+  it('lays a long chain out anew at a readable zoom from its start, not shrunk to fit', async () => {
+    const size = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 800, bottom: 500, width: 800, height: 500, toJSON: () => ({}) })
+    try {
+      const chain: Graph = {
+        version: 1,
+        nodes: Array.from({ length: 14 }, (_, i) => ({ id: `s${i}`, type: 'state', label: `Step ${i}` })),
+        edges: Array.from({ length: 13 }, (_, i) => ({ id: `e${i}`, from: `s${i}`, to: `s${i + 1}`, label: `go ${i}` })),
+      }
+      const w = editor({ modelValue: chain, direction: 'LR' })
+      await flushPromises()
+      ;(w.vm as unknown as { autoLayout(): void }).autoLayout()
+      await new Promise((r) => setTimeout(r, 60))
+      await flushPromises()
+      expect(w.find('.fl-controls__zoom').text()).toBe('100%')
+    } finally {
+      size.mockRestore()
+    }
   })
 
   it('keeps the toolbar across the top by default', async () => {
