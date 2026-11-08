@@ -325,6 +325,7 @@ defineExpose({
           :options="targetOptions"
           :model-value="''"
           :placeholder="labels.addTransition"
+          :aria-label="labels.addTransition"
           searchable
           size="sm"
           @update:model-value="(v) => v && emit('connect', node!.id, String(v))"

@@ -159,6 +159,8 @@ describe('FlowEditor', () => {
     await flushPromises()
     const select = w.findAllComponents(UidSelect).find((c) => c.classes().includes('fl-props__connect'))!
     expect(select).toBeDefined()
+    // The select is named for assistive technology, not only by its placeholder.
+    expect((select.props() as { ariaLabel?: string }).ariaLabel ?? select.attributes('aria-label')).toBeTruthy()
     select.vm.$emit('update:modelValue', 'cancelled')
     await flushPromises()
     const edge = model(w).edges.at(-1)!
