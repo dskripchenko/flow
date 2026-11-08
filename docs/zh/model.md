@@ -158,6 +158,15 @@ const issues = validateGraph(graph, { registry })
 
 错误排在前面。`issuesByElement(issues)` 按元素 id 对它们分组。
 
+`message` 为英文，并用 id 指代元素，供日志和界面之外使用。它的组成部分在 `params` 中
+（`IssueParams`：`end`、`node`、`group`、`type`、`port`、`wrongKind`、`anyState`）。
+编辑器根据自己的标签生成问题文本，每个代码一个（`issueDuplicateId`、`issueUnknownNode`、
+`issueUnknownPort`、`issueUnknownGroup`、`issueGroupCycle`、`issueUnknownType`、
+`issueMissingStart`、`issueMissingEnd`、`issueStartIncoming`、`issueEndOutgoing`、
+`issueUnreachable`、`issueDeadEnd`、`issueEmptyLabel`），并用名称指代元素；宿主可通过
+`labels` 覆盖它们，或用 `@dskripchenko/flow/vue` 中的 `issueMessage(issue, graph, labels)`
+以同样方式生成文本。
+
 ## 布局
 
 ```ts

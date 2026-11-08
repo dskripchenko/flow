@@ -297,4 +297,38 @@ describe('FlowEditor', () => {
     expect(none.find('.fl-tab-issues__count').exists()).toBe(false)
     expect(none.emitted('validate')!.at(-1)![0]).toEqual([])
   })
+
+  it('words issues in the interface language, naming elements by their label', async () => {
+    const graph: Graph = {
+      version: 1,
+      nodes: [
+        { id: 's', type: 'start' },
+        { id: 'a', type: 'state', label: 'Draft' },
+        { id: 'b', type: 'state' },
+        { id: 'end', type: 'end' },
+      ],
+      edges: [{ id: 'e', from: 's', to: 'a' }],
+    }
+    const issueTexts = async (x: ReturnType<typeof editor>) => {
+      await x.find('.fl-tab-issues').trigger('click')
+      await flushPromises()
+      return x.findAll('.fl-issue__text').map((i) => i.text())
+    }
+    const w = editor({ modelValue: graph, locale: 'ru' })
+    await flushPromises()
+    const texts = await issueTexts(w)
+    expect(texts).toContain('У «Draft» нет исходящего перехода')
+    expect(texts).toContain('«b» недостижим из начала')
+    // The model keeps the English message for non-UI use.
+    const issues = w.emitted('validate')!.at(-1)![0] as { code: string; message: string }[]
+    expect(issues.find((i) => i.code === 'unreachable')!.message).toBe('Node "b" cannot be reached from the start')
+
+    const en = editor({ modelValue: structuredClone(graph) })
+    await flushPromises()
+    expect(await issueTexts(en)).toContain('"Draft" has no outgoing transition')
+
+    const custom = editor({ modelValue: structuredClone(graph), locale: 'ru', labels: { issueDeadEnd: (t: { name: string }) => `Тупик: ${t.name}` } })
+    await flushPromises()
+    expect(await issueTexts(custom)).toContain('Тупик: Draft')
+  })
 })

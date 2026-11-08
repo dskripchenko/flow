@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GraphError, createRegistry, emptyGraph, issuesByElement, parseGraph, stringifyGraph, validateGraph, type Graph } from '../../src/index'
 import { orderProcess } from '../fixtures/order'
+import { en, issueMessage, ru } from '../../src/vue/labels'
 
 const codes = (g: Graph, opts = {}) => validateGraph(g, opts).map((i) => `${i.severity}:${i.code}:${i.target?.id ?? ''}`)
 
@@ -125,5 +126,40 @@ describe('validateGraph', () => {
   it('groups issues by element', () => {
     const issues = validateGraph({ version: 1, nodes: [{ id: 'a', type: 'state' }], edges: [] })
     expect(issuesByElement(issues).get('a')!.map((i) => i.code)).toEqual(['empty-label', 'dead-end'])
+  })
+
+  it('carries params and words every code in en and ru', () => {
+    const g: Graph = {
+      version: 1,
+      groups: [{ id: 'g1', parent: 'g1' }],
+      nodes: [
+        { id: 's', type: 'start', group: 'nope' },
+        { id: 'x', type: 'mystery', label: 'X' },
+        { id: 'a', type: 'state' },
+        { id: 'a', type: 'state', label: 'A' },
+        { id: 'z', type: 'end', label: 'Done' },
+        { id: 'p', type: 'decision', label: 'P' },
+      ],
+      edges: [
+        { id: 'e1', from: 's', to: 'ghost' },
+        { id: 'e2', from: 'z', to: 's' },
+        { id: 'e3', from: 'p', to: 'a', fromPort: 'nope' },
+      ],
+    }
+    const issues = validateGraph(g)
+    expect(issues.find((i) => i.code === 'unknown-node')!.params).toEqual({ end: 'to', node: 'ghost' })
+    expect(issues.find((i) => i.code === 'end-outgoing')!.params).toEqual({ node: 'z' })
+    const all = [...issues, ...validateGraph({ version: 1, nodes: [{ id: 'q', type: 'state', label: 'Q' }], edges: [] })]
+    const seen = new Set(all.map((i) => i.code))
+    expect(seen.size).toBeGreaterThanOrEqual(12)
+    for (const i of all) {
+      for (const labels of [en, ru]) {
+        const text = issueMessage(i, g, labels)
+        expect(text, i.code).toBeTruthy()
+        expect(text).not.toContain('undefined')
+      }
+    }
+    const end = issues.find((i) => i.code === 'end-outgoing')!
+    expect(issueMessage(end, g, ru)).toBe('Переход «e2» выходит из конца «Done»')
   })
 })

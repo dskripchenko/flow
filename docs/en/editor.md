@@ -47,6 +47,8 @@ function onChange(e: ChangeEvent) {
   the host as an `updateNode` of the sub-process node at the root.
 - **Validate** — the Issues tab lists errors and warnings; elements with
   issues carry a marker; pressing an issue selects its element and shows it.
+  Issues read in the interface language and name elements by their label
+  (the `issue*` labels, one per code, take an `IssueText`).
 - **Import / export** — "JSON / Mermaid" menu: export the model as a JSON
   file, import JSON, import Mermaid `stateDiagram-v2` / `flowchart` (with the
   `mermaid` prop). Imports are undoable.

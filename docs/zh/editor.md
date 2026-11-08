@@ -40,7 +40,8 @@ function onChange(e: ChangeEvent) {
 - **子流程** —— 打开内联子流程（标记、双击或属性面板）并就地编辑；面包屑可返回。改动以
   根层级上该子流程节点的 `updateNode` 传给宿主。
 - **校验** —— “问题”标签页列出错误和警告；有问题的元素带有标记；点击某个问题会选中并
-  显示其元素。
+  显示其元素。问题以界面语言显示，并用元素的名称指代元素（`issue*` 标签，每个代码一个，
+  接收 `IssueText`）。
 - **导入 / 导出** —— “JSON / Mermaid” 菜单：把模型导出为 JSON 文件、导入 JSON、导入
   Mermaid `stateDiagram-v2` / `flowchart`（需配合 `mermaid` prop）。导入可以撤销。
 

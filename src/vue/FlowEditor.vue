@@ -1039,6 +1039,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
               </p>
               <FlowIssues
                 :issues="issues"
+                :graph="level"
                 :labels="L"
                 @focus="focusIssue"
               />

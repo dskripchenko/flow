@@ -30,6 +30,26 @@ export interface Issue {
   message: string
   /** The element the issue is about, when there is one. */
   target?: { kind: ElementKind; id: string }
+  /** The details `message` is made of, for a host (or the editor) to word it itself. */
+  params?: IssueParams
+}
+
+/** What an issue's message mentions besides its target. */
+export interface IssueParams {
+  /** `unknown-node`, `unknown-port`: which end of the edge. */
+  end?: 'from' | 'to'
+  /** The other node involved: the missing one (`unknown-node`), the port's node (`unknown-port`), the start or end node (`start-incoming`, `end-outgoing`). */
+  node?: string
+  /** `unknown-group`: the missing group; `group-cycle` has none. */
+  group?: string
+  /** `unknown-type`: the type that is not in the registry. */
+  type?: string
+  /** `unknown-port`: the port. */
+  port?: string
+  /** `unknown-port`: the port exists but does not take edges at this end. */
+  wrongKind?: boolean
+  /** `start-incoming`: the node is an "any state" node, not a start. */
+  anyState?: boolean
 }
 
 export interface ValidateOptions {
@@ -42,8 +62,11 @@ export interface ValidateOptions {
 export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issue[] {
   const registry = options.registry ?? defaultRegistry
   const issues: Issue[] = []
-  const add = (severity: IssueSeverity, code: IssueCode, message: string, kind?: ElementKind, id?: string) =>
-    issues.push(kind && id !== undefined ? { severity, code, message, target: { kind, id } } : { severity, code, message })
+  const add = (severity: IssueSeverity, code: IssueCode, message: string, kind?: ElementKind, id?: string, params?: IssueParams) => {
+    const issue: Issue = kind && id !== undefined ? { severity, code, message, target: { kind, id } } : { severity, code, message }
+    if (params) issue.params = params
+    issues.push(issue)
+  }
 
   // Ids are unique across nodes, edges and groups: one selection, one namespace.
   const seen = new Map<string, ElementKind>()
@@ -58,7 +81,7 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
   for (const g of graph.groups ?? []) claim('group', g.id)
 
   for (const g of graph.groups ?? []) {
-    if (g.parent !== undefined && !groups.has(g.parent)) add('error', 'unknown-group', `Group "${g.id}" is inside an unknown group "${g.parent}"`, 'group', g.id)
+    if (g.parent !== undefined && !groups.has(g.parent)) add('error', 'unknown-group', `Group "${g.id}" is inside an unknown group "${g.parent}"`, 'group', g.id, { group: g.parent })
     let p = g.parent
     let steps = 0
     while (p !== undefined && groups.has(p)) {
@@ -71,8 +94,8 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
   }
 
   for (const n of graph.nodes) {
-    if (!registry.has(n.type)) add('warning', 'unknown-type', `Node "${n.id}" has an unknown type "${n.type}"; it is drawn as a state`, 'node', n.id)
-    if (n.group !== undefined && !groups.has(n.group)) add('error', 'unknown-group', `Node "${n.id}" is in an unknown group "${n.group}"`, 'node', n.id)
+    if (!registry.has(n.type)) add('warning', 'unknown-type', `Node "${n.id}" has an unknown type "${n.type}"; it is drawn as a state`, 'node', n.id, { type: n.type })
+    if (n.group !== undefined && !groups.has(n.group)) add('error', 'unknown-group', `Node "${n.id}" is in an unknown group "${n.group}"`, 'node', n.id, { group: n.group })
     const def = typeOf(registry, n.type)
     if (!def.labelOutside && !def.annotation && !(n.label ?? '').trim() && n.type !== 'decision') {
       add('warning', 'empty-label', `Node "${n.id}" has no label`, 'node', n.id)
@@ -85,15 +108,15 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
       const id = e[end]
       const n = nodes.get(id)
       if (!n) {
-        add('error', 'unknown-node', `Edge "${e.id}" ${end === 'from' ? 'starts at' : 'ends at'} an unknown node "${id}"`, 'edge', e.id)
+        add('error', 'unknown-node', `Edge "${e.id}" ${end === 'from' ? 'starts at' : 'ends at'} an unknown node "${id}"`, 'edge', e.id, { end, node: id })
         continue
       }
       const portId = end === 'from' ? e.fromPort : e.toPort
       if (portId !== undefined) {
         const port = portsOf(registry, n).find((p) => p.id === portId)
-        if (!port) add('error', 'unknown-port', `Edge "${e.id}" uses an unknown port "${portId}" of "${id}"`, 'edge', e.id)
+        if (!port) add('error', 'unknown-port', `Edge "${e.id}" uses an unknown port "${portId}" of "${id}"`, 'edge', e.id, { end, node: id, port: portId })
         else if ((end === 'from' && port.kind === 'in') || (end === 'to' && port.kind === 'out')) {
-          add('error', 'unknown-port', `Port "${portId}" of "${id}" does not take ${end === 'from' ? 'outgoing' : 'incoming'} edges`, 'edge', e.id)
+          add('error', 'unknown-port', `Port "${portId}" of "${id}" does not take ${end === 'from' ? 'outgoing' : 'incoming'} edges`, 'edge', e.id, { end, node: id, port: portId, wrongKind: true })
         }
       }
     }
@@ -112,8 +135,8 @@ export function validateGraph(graph: Graph, options: ValidateOptions = {}): Issu
   for (const e of live) {
     const to = nodes.get(e.to)
     const from = nodes.get(e.from)
-    if (to && typeOf(registry, to.type).noIncoming) add('warning', 'start-incoming', `Edge "${e.id}" leads into the ${typeOf(registry, to.type).anyState ? '"any state"' : 'start'} node "${to.id}"`, 'edge', e.id)
-    if (from && typeOf(registry, from.type).noOutgoing) add('warning', 'end-outgoing', `Edge "${e.id}" leaves the end node "${from.id}"`, 'edge', e.id)
+    if (to && typeOf(registry, to.type).noIncoming) add('warning', 'start-incoming', `Edge "${e.id}" leads into the ${typeOf(registry, to.type).anyState ? '"any state"' : 'start'} node "${to.id}"`, 'edge', e.id, typeOf(registry, to.type).anyState ? { node: to.id, anyState: true } : { node: to.id })
+    if (from && typeOf(registry, from.type).noOutgoing) add('warning', 'end-outgoing', `Edge "${e.id}" leaves the end node "${from.id}"`, 'edge', e.id, { node: from.id })
   }
 
   // Reachability from every start. Without a start there is nothing to measure against.

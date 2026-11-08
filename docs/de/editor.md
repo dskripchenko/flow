@@ -52,7 +52,9 @@ function onChange(e: ChangeEvent) {
   der Wurzelebene.
 - **Validieren** — der Tab „Probleme“ listet Fehler und Warnungen; Elemente
   mit Problemen tragen eine Markierung; ein Klick auf ein Problem wählt sein
-  Element aus und zeigt es an.
+  Element aus und zeigt es an. Probleme erscheinen in der Sprache der
+  Oberfläche und nennen Elemente beim Namen (die Labels `issue*`, eines je
+  Code, erhalten ein `IssueText`).
 - **Import / Export** — Menü „JSON / Mermaid“: das Modell als JSON-Datei
   exportieren, JSON importieren, Mermaid `stateDiagram-v2` / `flowchart`
   importieren (mit der Prop `mermaid`). Importe lassen sich rückgängig machen.
