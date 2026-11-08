@@ -879,7 +879,7 @@ function insets(): { top: number; right: number; bottom: number; left: number } 
   const out = { top: 16, right: 16, bottom: 16, left: 16 }
   if (!el) return out
   const r = el.getBoundingClientRect()
-  for (const o of el.querySelectorAll<HTMLElement>('.fl-status, .fl-nav')) {
+  for (const o of el.querySelectorAll<HTMLElement>('.fl-status, .fl-nav, .fl-tools')) {
     const b = o.getBoundingClientRect()
     if (b.height > 0 && b.top - r.top < r.height / 3) out.top = Math.max(out.top, b.bottom - r.top + 12)
   }

@@ -95,11 +95,12 @@ function onChange(e: ChangeEvent) {
 | `fields` | `PropertyFields` | все | какие встроенные поля показывает панель свойств: `{ node?, edge?, graph? }`, в каждом — список ключей полей (ниже); без списка — все, `[]` — ни одного |
 | `io` | `boolean` | `true` | `false` прячет меню JSON / Mermaid (экспорт и импорт) и кнопки импорта на пустом холсте |
 | `ignoreIssues` | `IssueCode[]` | `[]` | коды проблем, исключённые из проверки: вкладка «Проблемы» и её счётчик, отметки на элементах, `validate` и `issues` снаружи |
+| `toolbar` | `'top' \| 'floating'` | `'top'` | `floating`: компактная панель значков над левым верхним углом холста, без отмены и повтора — хост показывает свои через `undo`, `redo`, `canUndo`, `canRedo` снаружи |
 
 События: `update:modelValue`, `change` (`ChangeEvent`), `select` (идентификаторы),
 `validate` (проблемы, при каждом изменении), `export` (текст JSON).
 Слоты: `toolbar` (дополнительное содержимое панели инструментов), `properties` (`{ selection, graph, path }`).
-Доступно снаружи: `undo()`, `redo()`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
+Доступно снаружи: `undo()`, `redo()`, `canUndo`, `canRedo`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
 
 На узких экранах (уже 760 px) панели элементов и свойств сворачиваются в
 выдвижные панели, которые открываются с панели инструментов; на тач-экранах

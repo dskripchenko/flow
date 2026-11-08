@@ -96,11 +96,12 @@ Während der Eingabe in ein Feld werden Tastenkürzel ignoriert.
 | `fields` | `PropertyFields` | alle | welche eingebauten Felder der Eigenschaftenbereich zeigt: `{ node?, edge?, graph? }`, jeweils eine Liste von Feldschlüsseln (unten); ohne Liste alle, `[]` keine |
 | `io` | `boolean` | `true` | `false` blendet das JSON-/Mermaid-Menü (Export und Import) und die Import-Schaltflächen der leeren Zeichenfläche aus |
 | `ignoreIssues` | `IssueCode[]` | `[]` | Problemcodes, die die Prüfung auslässt: der Tab „Probleme“ und sein Zähler, die Markierungen an Elementen, `validate` und das exponierte `issues` |
+| `toolbar` | `'top' \| 'floating'` | `'top'` | `floating`: eine kompakte Symbolleiste über der oberen linken Ecke der Zeichenfläche, ohne Rückgängig und Wiederholen — der Host zeigt eigene über das exponierte `undo`, `redo`, `canUndo`, `canRedo` |
 
 Events: `update:modelValue`, `change` (`ChangeEvent`), `select` (IDs),
 `validate` (Probleme, bei jeder Änderung), `export` (der JSON-Text).
 Slots: `toolbar` (zusätzlicher Inhalt der Werkzeugleiste), `properties` (`{ selection, graph, path }`).
-Exponiert: `undo()`, `redo()`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
+Exponiert: `undo()`, `redo()`, `canUndo`, `canRedo`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
 
 Auf schmalen Bildschirmen (unter 760 px) klappen Element- und
 Eigenschaftenbereich in Drawer ein, die über die Werkzeugleiste geöffnet

@@ -284,6 +284,31 @@ describe('FlowEditor', () => {
     expect(off.find('.fl-empty__add-start').exists()).toBe(true)
   })
 
+  it('floats a compact toolbar over the canvas without undo and redo, exposing them to the host', async () => {
+    const w = editor({ toolbar: 'floating' })
+    await flushPromises()
+    const bar = w.find('.fl-editor__canvas .fl-tools .fl-toolbar--floating')
+    expect(bar.exists()).toBe(true)
+    expect(w.findAll('.fl-toolbar')).toHaveLength(1)
+    expect(bar.find('.fl-toolbar__undo').exists()).toBe(false)
+    expect(bar.find('.fl-toolbar__layout').exists()).toBe(true)
+    expect(bar.find('.fl-toolbar__text').exists()).toBe(false)
+    const vm = w.vm as unknown as { canUndo: boolean; canRedo: boolean; undo(): void }
+    expect(vm.canUndo).toBe(false)
+    await w.find('.fl-palette__item[data-type="task"]').trigger('click')
+    expect(vm.canUndo).toBe(true)
+    vm.undo()
+    await flushPromises()
+    expect(vm.canRedo).toBe(true)
+  })
+
+  it('keeps the toolbar across the top by default', async () => {
+    const w = editor()
+    await flushPromises()
+    expect(w.find('.fl-editor > .fl-toolbar .fl-toolbar__undo').exists()).toBe(true)
+    expect(w.find('.fl-tools').exists()).toBe(false)
+  })
+
   it('drops the issue codes given in `ignoreIssues`', async () => {
     const graph: Graph = { version: 1, nodes: [{ id: 's', type: 'start' }, { id: 'a', type: 'state', label: 'A' }], edges: [{ id: 'e', from: 's', to: 'a' }] }
     const w = editor({ modelValue: graph, ignoreIssues: ['dead-end'] })

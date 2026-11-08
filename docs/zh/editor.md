@@ -82,11 +82,12 @@ function onChange(e: ChangeEvent) {
 | `fields` | `PropertyFields` | 全部 | 属性面板显示哪些内置字段：`{ node?, edge?, graph? }`，每项是字段键列表（见下文）；不给列表即全部，`[]` 即一个都不显示 |
 | `io` | `boolean` | `true` | `false` 隐藏 JSON / Mermaid 菜单（导出与导入）以及空画布上的导入按钮 |
 | `ignoreIssues` | `IssueCode[]` | `[]` | 从校验中排除的问题代码：问题标签页及其计数、元素上的标记、`validate` 事件和暴露的 `issues` |
+| `toolbar` | `'top' \| 'floating'` | `'top'` | `floating`：画布左上角的紧凑图标工具栏，不含撤销和重做——宿主通过暴露的 `undo`、`redo`、`canUndo`、`canRedo` 显示自己的按钮 |
 
 事件：`update:modelValue`、`change`（`ChangeEvent`）、`select`（id 列表）、
 `validate`（问题列表，每次改动时触发）、`export`（JSON 文本）。
 插槽：`toolbar`（工具栏附加内容）、`properties`（`{ selection, graph, path }`）。
-暴露的方法：`undo()`、`redo()`、`autoLayout()`、`fit()`、`select(ids)`、`history`、`issues`。
+暴露的方法：`undo()`、`redo()`、`canUndo`、`canRedo`、`autoLayout()`、`fit()`、`select(ids)`、`history`、`issues`。
 
 在窄屏（小于 760 px）上，元素面板和属性面板折叠为从工具栏打开的抽屉；触屏：长按打开
 上下文菜单。
