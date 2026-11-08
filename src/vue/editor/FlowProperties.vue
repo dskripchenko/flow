@@ -223,7 +223,10 @@ defineExpose({
 
     <!-- One node. -->
     <template v-else-if="node">
-      <div class="fl-props__head">
+      <div
+        v-if="showNode('heading')"
+        class="fl-props__head"
+      >
         <component
           :is="headIcon"
           :size="16"
@@ -384,7 +387,10 @@ defineExpose({
 
     <!-- One edge. -->
     <template v-else-if="edge">
-      <div class="fl-props__head">
+      <div
+        v-if="showEdge('heading')"
+        class="fl-props__head"
+      >
         <component
           :is="ArrowRight"
           :size="16"
@@ -396,7 +402,10 @@ defineExpose({
           :title="edge.id"
         >{{ edge.id }}</code>
       </div>
-      <p class="fl-props__muted fl-props__route">
+      <p
+        v-if="showEdge('heading')"
+        class="fl-props__muted fl-props__route"
+      >
         {{ nodeLabel(edge.from) }} → {{ nodeLabel(edge.to) }}
       </p>
       <UidInput

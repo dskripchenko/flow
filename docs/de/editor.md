@@ -138,11 +138,11 @@ Feldschlüssel (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; Typen `NodeField`,
 
 | Auswahl | Schlüssel |
 |---|---|
-| ein Knoten | `label`, `description`, `type`, `join` (Typen mit Regionen), `group` (wenn der Graph Gruppen hat), `enabled`, `transitions` (die ausgehende Liste und „Übergang hinzufügen zu…“), `subgraph`, `data` |
-| eine Kante | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| ein Knoten | `heading` (Art und ID), `label`, `description`, `type`, `join` (Typen mit Regionen), `group` (wenn der Graph Gruppen hat), `enabled`, `transitions` (die ausgehende Liste und „Übergang hinzufügen zu…“), `subgraph`, `data` |
+| eine Kante | `heading` (Art, ID und Weg), `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
 | nichts | `title`, `direction` |
 
-Der Kopf des Knotens oder der Kante, Löschen und die Ausrichtungswerkzeuge für
+Löschen und die Ausrichtungswerkzeuge für
 mehrere Knoten sind Aktionen und bleiben immer. Ohne `enabled` bietet auch das
 Kontextmenü kein Aktivieren oder Deaktivieren an. Eigene Felder hält der Host
 in seinem eigenen Speicher nach Element-ID oder in `data` über `v-model` — ein

@@ -4,10 +4,10 @@
  * which of these stay.
  */
 
-/** Fields shown for one selected node. */
-export const NODE_FIELDS = ['label', 'description', 'type', 'join', 'group', 'enabled', 'transitions', 'subgraph', 'data'] as const
-/** Fields shown for one selected edge. */
-export const EDGE_FIELDS = ['label', 'condition', 'kind', 'trigger', 'enabled', 'data'] as const
+/** Fields shown for one selected node; `heading` is its kind and id at the top. */
+export const NODE_FIELDS = ['heading', 'label', 'description', 'type', 'join', 'group', 'enabled', 'transitions', 'subgraph', 'data'] as const
+/** Fields shown for one selected edge; `heading` is its kind, id and route at the top. */
+export const EDGE_FIELDS = ['heading', 'label', 'condition', 'kind', 'trigger', 'enabled', 'data'] as const
 /** Fields shown with nothing selected: the graph's own settings. */
 export const GRAPH_FIELDS = ['title', 'direction'] as const
 

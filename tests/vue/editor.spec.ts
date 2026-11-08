@@ -246,12 +246,15 @@ describe('FlowEditor', () => {
     expect(w.find('.fl-props__data').exists()).toBe(false)
     expect(w.find('.fl-props textarea').exists()).toBe(false)
     expect(field('Type')).toBe(false)
-    // Delete stays: it is an action, not a field.
+    // Delete stays: it is an action, not a field; the heading is a field and is not listed.
     expect(w.find('.fl-props__delete').exists()).toBe(true)
+    expect(w.find('.fl-props__head').exists()).toBe(false)
     expect(w.find('.host-fields').exists()).toBe(true)
 
     await w.find('.fl-edge-label[data-edge-id]').trigger('pointerdown')
     await flushPromises()
+    expect(w.find('.fl-props__head').exists()).toBe(false)
+    expect(w.find('.fl-props__route').exists()).toBe(false)
     expect(w.find('.fl-props__label').exists()).toBe(false)
     expect(w.find('.fl-props__condition').exists()).toBe(false)
     expect(w.find('.fl-props__data').exists()).toBe(false)
@@ -271,6 +274,7 @@ describe('FlowEditor', () => {
     expect(w.find('.fl-props textarea').exists()).toBe(true)
     expect(w.find('.fl-props__transitions').exists()).toBe(true)
     expect(w.find('.fl-props__data').exists()).toBe(true)
+    expect(w.find('.fl-props__head').exists()).toBe(true)
   })
 
   it('hides import and export with `io: false`', async () => {

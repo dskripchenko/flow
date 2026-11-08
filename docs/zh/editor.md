@@ -120,11 +120,11 @@ function onChange(e: ChangeEvent) {
 
 | 选中内容 | 键 |
 |---|---|
-| 一个节点 | `label`、`description`、`type`、`join`（带区域的类型）、`group`（图中有分组时）、`enabled`、`transitions`（出边列表和“添加转换到…”）、`subgraph`、`data` |
-| 一条边 | `label`、`condition`、`kind`、`trigger`、`enabled`、`data` |
+| 一个节点 | `heading`（类型和 id）、`label`、`description`、`type`、`join`（带区域的类型）、`group`（图中有分组时）、`enabled`、`transitions`（出边列表和“添加转换到…”）、`subgraph`、`data` |
+| 一条边 | `heading`（类型、id 和路径）、`label`、`condition`、`kind`、`trigger`、`enabled`、`data` |
 | 无 | `title`、`direction` |
 
-节点或边的标题、删除以及多个节点的对齐工具属于操作，始终保留。没有 `enabled` 时，上下文菜单也不提供启用或停用。
+删除以及多个节点的对齐工具属于操作，始终保留。没有 `enabled` 时，上下文菜单也不提供启用或停用。
 宿主的字段保存在它自己的存储中（按元素 id），或通过 `v-model` 写入 `data`——从外部设置的模型会重置撤销历史。
 
 ## 命令与历史（核心）

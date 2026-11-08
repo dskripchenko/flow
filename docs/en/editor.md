@@ -130,11 +130,11 @@ Field keys (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; types `NodeField`,
 
 | Selection | Keys |
 |---|---|
-| one node | `label`, `description`, `type`, `join` (types with regions), `group` (when the graph has groups), `enabled`, `transitions` (the outgoing list and "Add a transition to…"), `subgraph`, `data` |
-| one edge | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| one node | `heading` (its kind and id), `label`, `description`, `type`, `join` (types with regions), `group` (when the graph has groups), `enabled`, `transitions` (the outgoing list and "Add a transition to…"), `subgraph`, `data` |
+| one edge | `heading` (its kind, id and route), `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
 | nothing | `title`, `direction` |
 
-The node or edge header, delete and the arrange tools for several nodes are
+Delete and the arrange tools for several nodes are
 actions and always stay. Without `enabled` the context menu does not offer
 enabling or disabling either. Fields of the host are kept in its own store
 keyed by element id, or in `data` through `v-model` — a model set from
