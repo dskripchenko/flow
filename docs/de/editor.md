@@ -96,11 +96,12 @@ Während der Eingabe in ein Feld werden Tastenkürzel ignoriert.
 | `fields` | `PropertyFields` | alle | welche eingebauten Felder der Eigenschaftenbereich zeigt: `{ node?, edge?, graph? }`, jeweils eine Liste von Feldschlüsseln (unten); ohne Liste alle, `[]` keine |
 | `io` | `boolean` | `true` | `false` blendet das JSON-/Mermaid-Menü (Export und Import) und die Import-Schaltflächen der leeren Zeichenfläche aus |
 | `ignoreIssues` | `IssueCode[]` | `[]` | Problemcodes, die die Prüfung auslässt: der Tab „Probleme“ und sein Zähler, die Markierungen an Elementen, `validate` und das exponierte `issues` |
+| `toolbar` | `'top' \| 'floating'` | `'top'` | `floating`: eine kompakte Symbolleiste über der oberen linken Ecke der Zeichenfläche, ohne Rückgängig und Wiederholen — der Host zeigt eigene über das exponierte `undo`, `redo`, `canUndo`, `canRedo` |
 
 Events: `update:modelValue`, `change` (`ChangeEvent`), `select` (IDs),
 `validate` (Probleme, bei jeder Änderung), `export` (der JSON-Text).
 Slots: `toolbar` (zusätzlicher Inhalt der Werkzeugleiste), `properties` (`{ selection, graph, path }`).
-Exponiert: `undo()`, `redo()`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
+Exponiert: `undo()`, `redo()`, `canUndo`, `canRedo`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
 
 Auf schmalen Bildschirmen (unter 760 px) klappen Element- und
 Eigenschaftenbereich in Drawer ein, die über die Werkzeugleiste geöffnet
@@ -137,11 +138,11 @@ Feldschlüssel (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; Typen `NodeField`,
 
 | Auswahl | Schlüssel |
 |---|---|
-| ein Knoten | `label`, `description`, `type`, `join` (Typen mit Regionen), `group` (wenn der Graph Gruppen hat), `enabled`, `transitions` (die ausgehende Liste und „Übergang hinzufügen zu…“), `subgraph`, `data` |
-| eine Kante | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| ein Knoten | `heading` (Art und ID), `label`, `description`, `type`, `join` (Typen mit Regionen), `group` (wenn der Graph Gruppen hat), `enabled`, `transitions` (die ausgehende Liste und „Übergang hinzufügen zu…“), `subgraph`, `data` |
+| eine Kante | `heading` (Art, ID und Weg), `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
 | nichts | `title`, `direction` |
 
-Der Kopf des Knotens oder der Kante, Löschen und die Ausrichtungswerkzeuge für
+Löschen und die Ausrichtungswerkzeuge für
 mehrere Knoten sind Aktionen und bleiben immer. Ohne `enabled` bietet auch das
 Kontextmenü kein Aktivieren oder Deaktivieren an. Eigene Felder hält der Host
 in seinem eigenen Speicher nach Element-ID oder in `data` über `v-model` — ein

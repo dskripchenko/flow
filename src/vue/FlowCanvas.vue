@@ -879,7 +879,7 @@ function insets(): { top: number; right: number; bottom: number; left: number } 
   const out = { top: 16, right: 16, bottom: 16, left: 16 }
   if (!el) return out
   const r = el.getBoundingClientRect()
-  for (const o of el.querySelectorAll<HTMLElement>('.fl-status, .fl-nav')) {
+  for (const o of el.querySelectorAll<HTMLElement>('.fl-status, .fl-nav, .fl-tools')) {
     const b = o.getBoundingClientRect()
     if (b.height > 0 && b.top - r.top < r.height / 3) out.top = Math.max(out.top, b.bottom - r.top + 12)
   }
@@ -947,16 +947,16 @@ function focusNode(): NodeGeometry | undefined {
 }
 
 /** The first view: the whole graph when it fits at a readable zoom, else 100 % on the step that matters. */
-function autoFit(): void {
+function autoFit(smooth = false): void {
   const b = layout.value.bounds
   if ((b.width === 0 && b.height === 0) || !vp.size.value.width) return
   const whole = wholeZoom()
   if (whole >= READABLE) {
-    fit()
+    fit(smooth)
     return
   }
   const f = focusNode() ?? { x: b.x + b.width / 2, y: b.y + b.height / 2 }
-  vp.set(viewAt(Math.min(1, props.maxZoom), f))
+  vp.set(viewAt(Math.min(1, props.maxZoom), f), smooth)
 }
 
 let ro: ResizeObserver | undefined
@@ -1051,6 +1051,11 @@ const zoomPercent = computed(() => Math.round(vp.view.value.k * 100))
 
 defineExpose({
   fit,
+  /** The whole graph when it reads, else 100 % from where it starts (the first view). */
+  fitReadable: (smooth = false) => {
+    userMoved = false
+    autoFit(smooth)
+  },
   zoomIn: () => vp.zoomBy(1.2, undefined, true),
   zoomOut: () => vp.zoomBy(1 / 1.2, undefined, true),
   zoomTo: (k: number) => vp.zoomTo(k),

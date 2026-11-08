@@ -90,11 +90,12 @@ Shortcuts are ignored while typing in a field.
 | `fields` | `PropertyFields` | all | which built-in fields the properties panel shows: `{ node?, edge?, graph? }`, each a list of field keys (below); a missing list shows all, `[]` none |
 | `io` | `boolean` | `true` | `false` hides the JSON / Mermaid menu (export and import) and the empty canvas's import buttons |
 | `ignoreIssues` | `IssueCode[]` | `[]` | issue codes left out of validation: the Issues tab and its badge, the element markers, `validate` and the exposed `issues` |
+| `toolbar` | `'top' \| 'floating'` | `'top'` | `floating`: a compact icon toolbar over the canvas's top left corner, without undo and redo — the host shows its own with the exposed `undo`, `redo`, `canUndo`, `canRedo` |
 
 Events: `update:modelValue`, `change` (`ChangeEvent`), `select` (ids),
 `validate` (issues, on every change), `export` (the JSON text).
 Slots: `toolbar` (extra toolbar content), `properties` (`{ selection, graph, path }`).
-Exposed: `undo()`, `redo()`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
+Exposed: `undo()`, `redo()`, `canUndo`, `canRedo`, `autoLayout()`, `fit()`, `select(ids)`, `history`, `issues`.
 
 On narrow screens (under 760 px) the elements and properties panels fold
 into drawers opened from the toolbar; touch: long-press opens the context menu.
@@ -129,11 +130,11 @@ Field keys (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; types `NodeField`,
 
 | Selection | Keys |
 |---|---|
-| one node | `label`, `description`, `type`, `join` (types with regions), `group` (when the graph has groups), `enabled`, `transitions` (the outgoing list and "Add a transition to…"), `subgraph`, `data` |
-| one edge | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| one node | `heading` (its kind and id), `label`, `description`, `type`, `join` (types with regions), `group` (when the graph has groups), `enabled`, `transitions` (the outgoing list and "Add a transition to…"), `subgraph`, `data` |
+| one edge | `heading` (its kind, id and route), `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
 | nothing | `title`, `direction` |
 
-The node or edge header, delete and the arrange tools for several nodes are
+Delete and the arrange tools for several nodes are
 actions and always stay. Without `enabled` the context menu does not offer
 enabling or disabling either. Fields of the host are kept in its own store
 keyed by element id, or in `data` through `v-model` — a model set from

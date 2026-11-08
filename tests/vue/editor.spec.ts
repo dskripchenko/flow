@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { FlowEditor, type ChangeEvent } from '../../src/vue'
 import { UidSelect } from '@dskripchenko/ui'
@@ -246,12 +246,15 @@ describe('FlowEditor', () => {
     expect(w.find('.fl-props__data').exists()).toBe(false)
     expect(w.find('.fl-props textarea').exists()).toBe(false)
     expect(field('Type')).toBe(false)
-    // Delete stays: it is an action, not a field.
+    // Delete stays: it is an action, not a field; the heading is a field and is not listed.
     expect(w.find('.fl-props__delete').exists()).toBe(true)
+    expect(w.find('.fl-props__head').exists()).toBe(false)
     expect(w.find('.host-fields').exists()).toBe(true)
 
     await w.find('.fl-edge-label[data-edge-id]').trigger('pointerdown')
     await flushPromises()
+    expect(w.find('.fl-props__head').exists()).toBe(false)
+    expect(w.find('.fl-props__route').exists()).toBe(false)
     expect(w.find('.fl-props__label').exists()).toBe(false)
     expect(w.find('.fl-props__condition').exists()).toBe(false)
     expect(w.find('.fl-props__data').exists()).toBe(false)
@@ -271,6 +274,7 @@ describe('FlowEditor', () => {
     expect(w.find('.fl-props textarea').exists()).toBe(true)
     expect(w.find('.fl-props__transitions').exists()).toBe(true)
     expect(w.find('.fl-props__data').exists()).toBe(true)
+    expect(w.find('.fl-props__head').exists()).toBe(true)
   })
 
   it('hides import and export with `io: false`', async () => {
@@ -282,6 +286,50 @@ describe('FlowEditor', () => {
     expect(off.find('.fl-empty__import-json').exists()).toBe(false)
     expect(off.find('.fl-editor-empty').text()).not.toContain('Mermaid')
     expect(off.find('.fl-empty__add-start').exists()).toBe(true)
+  })
+
+  it('floats a compact toolbar over the canvas without undo and redo, exposing them to the host', async () => {
+    const w = editor({ toolbar: 'floating' })
+    await flushPromises()
+    const bar = w.find('.fl-editor__canvas .fl-tools .fl-toolbar--floating')
+    expect(bar.exists()).toBe(true)
+    expect(w.findAll('.fl-toolbar')).toHaveLength(1)
+    expect(bar.find('.fl-toolbar__undo').exists()).toBe(false)
+    expect(bar.find('.fl-toolbar__layout').exists()).toBe(true)
+    expect(bar.find('.fl-toolbar__text').exists()).toBe(false)
+    const vm = w.vm as unknown as { canUndo: boolean; canRedo: boolean; undo(): void }
+    expect(vm.canUndo).toBe(false)
+    await w.find('.fl-palette__item[data-type="task"]').trigger('click')
+    expect(vm.canUndo).toBe(true)
+    vm.undo()
+    await flushPromises()
+    expect(vm.canRedo).toBe(true)
+  })
+
+  it('lays a long chain out anew at a readable zoom from its start, not shrunk to fit', async () => {
+    const size = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 800, bottom: 500, width: 800, height: 500, toJSON: () => ({}) })
+    try {
+      const chain: Graph = {
+        version: 1,
+        nodes: Array.from({ length: 14 }, (_, i) => ({ id: `s${i}`, type: 'state', label: `Step ${i}` })),
+        edges: Array.from({ length: 13 }, (_, i) => ({ id: `e${i}`, from: `s${i}`, to: `s${i + 1}`, label: `go ${i}` })),
+      }
+      const w = editor({ modelValue: chain, direction: 'LR' })
+      await flushPromises()
+      ;(w.vm as unknown as { autoLayout(): void }).autoLayout()
+      await new Promise((r) => setTimeout(r, 60))
+      await flushPromises()
+      expect(w.find('.fl-controls__zoom').text()).toBe('100%')
+    } finally {
+      size.mockRestore()
+    }
+  })
+
+  it('keeps the toolbar across the top by default', async () => {
+    const w = editor()
+    await flushPromises()
+    expect(w.find('.fl-editor > .fl-toolbar .fl-toolbar__undo').exists()).toBe(true)
+    expect(w.find('.fl-tools').exists()).toBe(false)
   })
 
   it('drops the issue codes given in `ignoreIssues`', async () => {

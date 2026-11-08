@@ -5,7 +5,7 @@
  * align/distribute, auto layout, JSON and Mermaid import. `v-model` holds
  * the model; every change is also emitted as a command.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch, type Component } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, useId, watch, type Component } from 'vue'
 import {
   UidBadge,
   UidBreadcrumb,
@@ -132,6 +132,12 @@ const props = withDefaults(
     io?: boolean
     /** Issue codes left out of validation: the Issues tab, its badge, the element markers and `validate`. */
     ignoreIssues?: IssueCode[]
+    /**
+     * `top` (the default): a toolbar across the editor with undo and redo.
+     * `floating`: a compact icon toolbar over the canvas without them — the
+     * host shows its own (see the exposed `undo`, `redo`, `canUndo`, `canRedo`).
+     */
+    toolbar?: 'top' | 'floating'
   }>(),
   {
     registry: () => defaultRegistry,
@@ -152,6 +158,7 @@ const props = withDefaults(
     fields: undefined,
     io: true,
     ignoreIssues: () => [],
+    toolbar: 'top',
   },
 )
 
@@ -391,7 +398,8 @@ function distribute(axis: 'horizontal' | 'vertical'): void {
 function autoLayout(): void {
   const g = level.value
   const fresh = layoutGraph(g, { registry: props.registry, direction: canvas.value?.layout.direction ?? 'LR', routing: props.edgeStyle === 'smooth' ? 'spline' : 'orthogonal', ignorePositions: true })
-  if (run(layoutCommand(fresh))) setTimeout(() => canvas.value?.fit(true), 30)
+  // A long process laid out anew opens readable from its start, not shrunk to fit.
+  if (run(layoutCommand(fresh))) setTimeout(() => canvas.value?.fitReadable(true), 30)
 }
 function toggleEnabled(): void {
   const ids = selection.value
@@ -508,7 +516,7 @@ function openImport(mode: 'json' | 'mermaid'): void {
 function onImport(g: Graph): void {
   run({ type: 'replace', graph: g })
   select([])
-  setTimeout(() => canvas.value?.fit(true), 30)
+  setTimeout(() => canvas.value?.fitReadable(true), 30)
 }
 function exportJson(): void {
   const json = stringifyGraph(root.value)
@@ -655,7 +663,13 @@ function focusIssue(issue: Issue): void {
   void nextTick(() => canvas.value?.focusElement(issue.target!.id))
 }
 
-defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), select, history, issues })
+// The floating toolbar moves into the canvas overlay, where fitting the view leaves room for it.
+const floating = computed(() => props.toolbar === 'floating')
+const toolsAnchor = `fl-tools-${useId()}`
+/** Labels beside icons in the toolbar: in the wide top one only. */
+const toolText = computed(() => !narrow.value && !floating.value)
+
+defineExpose({ undo, redo, canUndo, canRedo, autoLayout, fit: () => canvas.value?.fit(true), select, history, issues })
 </script>
 
 <template>
@@ -673,11 +687,18 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
       :aria-label="L.editor"
       @keydown="onKeyDown"
     >
-      <!-- Toolbar -->
+      <!-- Toolbar: across the top, or floating over the canvas -->
+      <Teleport
+        :to="`#${toolsAnchor}`"
+        :disabled="!floating"
+        defer
+      >
       <div
         class="fl-toolbar"
+        :class="{ 'fl-toolbar--floating': floating }"
         role="toolbar"
         :aria-label="L.editor"
+        :data-fl-ui="floating ? '' : undefined"
       >
         <UidButton
           v-if="narrow && !readonly"
@@ -688,6 +709,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
           class="fl-toolbar__palette"
           @click="paletteOpen = true"
         />
+        <template v-if="!floating">
         <UidTooltip
           :content="undoTitle"
           placement="bottom"
@@ -720,6 +742,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
           class="fl-toolbar__sep"
           aria-hidden="true"
         />
+        </template>
         <UidTooltip
           :content="`${L.duplicate} (${mod}D)`"
           placement="bottom"
@@ -766,7 +789,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
             @click="autoLayout"
           >
             <span
-              v-if="!narrow"
+              v-if="toolText"
               class="fl-toolbar__text"
             >{{ L.autoLayout }}</span>
           </UidButton>
@@ -786,18 +809,21 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
             @click="snapOn = !snapOn"
           />
         </UidTooltip>
-        <span class="fl-toolbar__spacer" />
+        <span
+          v-if="!floating"
+          class="fl-toolbar__spacer"
+        />
         <UidMenu v-if="io">
           <template #trigger>
             <UidButton
               size="sm"
               variant="ghost"
-              :icon="narrow ? Ellipsis : FileCode"
+              :icon="toolText ? FileCode : Ellipsis"
               :aria-label="L.more"
               class="fl-toolbar__file"
             >
               <span
-                v-if="!narrow"
+                v-if="toolText"
                 class="fl-toolbar__text"
               >JSON / Mermaid</span>
             </UidButton>
@@ -847,6 +873,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
           </UidBadge>
         </UidButton>
       </div>
+      </Teleport>
 
       <div class="fl-editor__body">
         <!-- Palette -->
@@ -901,6 +928,12 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
             @update:minimap="(v: boolean) => (minimapOn = v)"
           >
             <template #overlay>
+              <div
+                v-if="floating"
+                :id="toolsAnchor"
+                class="fl-tools"
+                data-fl-ui
+              />
               <div
                 v-if="path.length"
                 class="fl-nav"
