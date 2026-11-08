@@ -1,5 +1,16 @@
 # @dskripchenko/flow
 
+## 1.4.0
+
+### Minor Changes
+
+- 1b81573: FlowEditor: `toolbar: 'floating'` puts a compact icon toolbar over the canvas without undo and redo, for hosts that show their own; `canUndo` and `canRedo` are exposed.
+- 1b81573: FlowEditor: the heading of the properties panel (the kind, id and route of the selection) is a field, `heading`, so a host with its own heading can leave it out; a `fields` list without it hides it.
+
+### Patch Changes
+
+- 1b81573: FlowEditor: auto-layout and an import open the scheme like the first view — whole when it reads, else at 100 % from its start — instead of shrinking a long process to fit.
+
 ## 1.3.0
 
 ### Minor Changes
