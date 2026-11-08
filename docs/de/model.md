@@ -167,6 +167,17 @@ const issues = validateGraph(graph, { registry })
 
 Fehler kommen zuerst. `issuesByElement(issues)` gruppiert sie nach Element-ID.
 
+`message` ist englisch und nennt Elemente bei ihrer ID — für Protokolle und
+alles außerhalb der Oberfläche. Woraus sie besteht, steht in `params`
+(`IssueParams`: `end`, `node`, `group`, `type`, `port`, `wrongKind`,
+`anyState`). Der Editor formuliert Probleme selbst aus seinen Labels, eines je
+Code (`issueDuplicateId`, `issueUnknownNode`, `issueUnknownPort`,
+`issueUnknownGroup`, `issueGroupCycle`, `issueUnknownType`, `issueMissingStart`,
+`issueMissingEnd`, `issueStartIncoming`, `issueEndOutgoing`, `issueUnreachable`,
+`issueDeadEnd`, `issueEmptyLabel`), und nennt Elemente beim Namen; ein Host
+überschreibt sie über `labels` oder formuliert ein Problem ebenso mit
+`issueMessage(issue, graph, labels)` aus `@dskripchenko/flow/vue`.
+
 ## Layout
 
 ```ts

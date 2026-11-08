@@ -2,10 +2,11 @@
 /** Validation issues; pressing one selects and shows its element. */
 import { UidButton } from '@dskripchenko/ui'
 import { CircleAlert, CircleCheck, TriangleAlert } from 'lucide-vue-next'
-import type { Issue } from '../../index'
-import type { FlowLabels } from '../labels'
+import type { Graph, Issue } from '../../index'
+import { issueMessage, type FlowLabels } from '../labels'
 
-defineProps<{ issues: readonly Issue[]; labels: FlowLabels }>()
+/** `graph` is the level the issues were found in: elements are named from it. */
+defineProps<{ issues: readonly Issue[]; graph: Graph; labels: FlowLabels }>()
 const emit = defineEmits<{ focus: [issue: Issue] }>()
 </script>
 
@@ -39,7 +40,7 @@ const emit = defineEmits<{ focus: [issue: Issue] }>()
           :data-code="issue.code"
           @click="emit('focus', issue)"
         >
-          <span class="fl-issue__text">{{ issue.message }}</span>
+          <span class="fl-issue__text">{{ issueMessage(issue, graph, labels) }}</span>
         </UidButton>
       </li>
     </ul>

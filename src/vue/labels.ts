@@ -2,6 +2,16 @@
  * Interface strings. English and Russian ship with the package; a host passes
  * `labels` to override any of them, or a whole dictionary for another language.
  */
+import type { Graph, Issue, IssueParams } from '../index'
+
+/**
+ * What an issue's text is made from: its target named by its label (else its
+ * id), and the issue's params with `node` and `group` named the same way.
+ */
+export interface IssueText extends IssueParams {
+  name: string
+}
+
 export interface FlowLabels {
   graph: string
   zoomIn: string
@@ -62,6 +72,19 @@ export interface FlowLabels {
   issues: string
   noIssues: string
   issueCount: (errors: number, warnings: number) => string
+  issueDuplicateId: (t: IssueText) => string
+  issueUnknownNode: (t: IssueText) => string
+  issueUnknownPort: (t: IssueText) => string
+  issueUnknownGroup: (t: IssueText) => string
+  issueGroupCycle: (t: IssueText) => string
+  issueUnknownType: (t: IssueText) => string
+  issueMissingStart: (t: IssueText) => string
+  issueMissingEnd: (t: IssueText) => string
+  issueStartIncoming: (t: IssueText) => string
+  issueEndOutgoing: (t: IssueText) => string
+  issueUnreachable: (t: IssueText) => string
+  issueDeadEnd: (t: IssueText) => string
+  issueEmptyLabel: (t: IssueText) => string
   undo: string
   redo: string
   delete: string
@@ -122,6 +145,8 @@ export interface FlowLabels {
   connectHint: string
   emptyEditorTitle: string
   emptyEditorHint: string
+  /** The empty canvas's hint when import is off (`io: false`). */
+  emptyEditorHintNoImport: string
   edge: string
   node: string
   group: string
@@ -187,6 +212,20 @@ export const en: FlowLabels = {
   issues: 'Issues',
   noIssues: 'No issues found',
   issueCount: (e, w) => [e ? `${e} error${e === 1 ? '' : 's'}` : '', w ? `${w} warning${w === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ') || 'No issues',
+  issueDuplicateId: (t) => `The id "${t.name}" is used more than once`,
+  issueUnknownNode: (t) => `Transition "${t.name}" ${t.end === 'from' ? 'starts at' : 'ends at'} an unknown step "${t.node}"`,
+  issueUnknownPort: (t) =>
+    t.wrongKind ? `Port "${t.port}" of "${t.node}" does not take ${t.end === 'from' ? 'outgoing' : 'incoming'} transitions` : `Transition "${t.name}" uses an unknown port "${t.port}" of "${t.node}"`,
+  issueUnknownGroup: (t) => `"${t.name}" is in an unknown group "${t.group}"`,
+  issueGroupCycle: (t) => `Group "${t.name}" contains itself`,
+  issueUnknownType: (t) => `"${t.name}" has an unknown type "${t.type}"; it is drawn as a state`,
+  issueMissingStart: () => 'The process has no start',
+  issueMissingEnd: () => 'The process has no end',
+  issueStartIncoming: (t) => `Transition "${t.name}" leads into ${t.anyState ? 'the "any state" step' : 'the start'} "${t.node}"`,
+  issueEndOutgoing: (t) => `Transition "${t.name}" leaves the end "${t.node}"`,
+  issueUnreachable: (t) => `"${t.name}" cannot be reached from the start`,
+  issueDeadEnd: (t) => `"${t.name}" has no outgoing transition`,
+  issueEmptyLabel: (t) => `Step "${t.name}" has no label`,
   undo: 'Undo',
   redo: 'Redo',
   delete: 'Delete',
@@ -247,6 +286,7 @@ export const en: FlowLabels = {
   connectHint: 'Drag from a handle to connect',
   emptyEditorTitle: 'Start your process',
   emptyEditorHint: 'Drag a start node from the elements panel, or import a Mermaid state diagram.',
+  emptyEditorHintNoImport: 'Drag a start node from the elements panel.',
   edge: 'Transition',
   node: 'Step',
   group: 'Group',
@@ -312,6 +352,20 @@ export const ru: FlowLabels = {
   issues: 'Проблемы',
   noIssues: 'Проблем не найдено',
   issueCount: (e, w) => [e ? `ошибок: ${e}` : '', w ? `предупреждений: ${w}` : ''].filter(Boolean).join(', ') || 'Проблем нет',
+  issueDuplicateId: (t) => `Идентификатор «${t.name}» используется несколько раз`,
+  issueUnknownNode: (t) => `Переход «${t.name}» ${t.end === 'from' ? 'начинается' : 'заканчивается'} в неизвестном шаге «${t.node}»`,
+  issueUnknownPort: (t) =>
+    t.wrongKind ? `Порт «${t.port}» шага «${t.node}» не принимает ${t.end === 'from' ? 'исходящие' : 'входящие'} переходы` : `Переход «${t.name}» использует неизвестный порт «${t.port}» шага «${t.node}»`,
+  issueUnknownGroup: (t) => `«${t.name}» входит в неизвестную группу «${t.group}»`,
+  issueGroupCycle: (t) => `Группа «${t.name}» содержит саму себя`,
+  issueUnknownType: (t) => `У «${t.name}» неизвестный тип «${t.type}»; он показан как состояние`,
+  issueMissingStart: () => 'В процессе нет начала',
+  issueMissingEnd: () => 'В процессе нет конца',
+  issueStartIncoming: (t) => `Переход «${t.name}» ведёт в ${t.anyState ? 'шаг «любое состояние»' : 'начало'} «${t.node}»`,
+  issueEndOutgoing: (t) => `Переход «${t.name}» выходит из конца «${t.node}»`,
+  issueUnreachable: (t) => `«${t.name}» недостижим из начала`,
+  issueDeadEnd: (t) => `У «${t.name}» нет исходящего перехода`,
+  issueEmptyLabel: (t) => `У шага «${t.name}» нет названия`,
   undo: 'Отменить',
   redo: 'Повторить',
   delete: 'Удалить',
@@ -372,6 +426,7 @@ export const ru: FlowLabels = {
   connectHint: 'Потяните за точку, чтобы соединить',
   emptyEditorTitle: 'Начните процесс',
   emptyEditorHint: 'Перетащите начальный узел из панели элементов или импортируйте диаграмму состояний Mermaid.',
+  emptyEditorHintNoImport: 'Перетащите начальный узел из панели элементов.',
   edge: 'Переход',
   node: 'Шаг',
   group: 'Группа',
@@ -384,4 +439,40 @@ export const LOCALES: Readonly<Record<'en' | 'ru', FlowLabels>> = { en, ru }
 export function resolveLabels(locale: string | undefined, overrides?: Partial<FlowLabels>): FlowLabels {
   const base = locale === 'ru' ? ru : en
   return overrides ? { ...base, ...overrides, statuses: { ...base.statuses, ...overrides.statuses }, types: { ...base.types, ...overrides.types } } : base
+}
+
+const ISSUE_KEYS = {
+  'duplicate-id': 'issueDuplicateId',
+  'unknown-node': 'issueUnknownNode',
+  'unknown-port': 'issueUnknownPort',
+  'unknown-group': 'issueUnknownGroup',
+  'group-cycle': 'issueGroupCycle',
+  'unknown-type': 'issueUnknownType',
+  'missing-start': 'issueMissingStart',
+  'missing-end': 'issueMissingEnd',
+  'start-incoming': 'issueStartIncoming',
+  'end-outgoing': 'issueEndOutgoing',
+  unreachable: 'issueUnreachable',
+  'dead-end': 'issueDeadEnd',
+  'empty-label': 'issueEmptyLabel',
+} as const satisfies Record<Issue['code'], keyof FlowLabels>
+
+/**
+ * An issue worded in the interface language: elements are named by their
+ * label (else their id) in `graph`, the level the issue was found in. Falls
+ * back to the issue's own English `message` for a code the labels lack.
+ */
+export function issueMessage(issue: Issue, graph: Graph, labels: FlowLabels): string {
+  const word = labels[ISSUE_KEYS[issue.code]] as ((t: IssueText) => string) | undefined
+  if (typeof word !== 'function') return issue.message
+  const nodeName = (id: string) => graph.nodes.find((n) => n.id === id)?.label?.trim() || id
+  const groupName = (id: string) => graph.groups?.find((g) => g.id === id)?.label?.trim() || id
+  const t = issue.target
+  // A duplicate id names several elements: the id is the name.
+  const name = !t || issue.code === 'duplicate-id' ? (t?.id ?? '') : t.kind === 'node' ? nodeName(t.id) : t.kind === 'group' ? groupName(t.id) : graph.edges.find((e) => e.id === t.id)?.label?.trim() || t.id
+  const p = issue.params ?? {}
+  const text: IssueText = { ...p, name }
+  if (p.node !== undefined) text.node = nodeName(p.node)
+  if (p.group !== undefined) text.group = groupName(p.group)
+  return word(text)
 }

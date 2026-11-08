@@ -40,7 +40,8 @@ function onChange(e: ChangeEvent) {
 - **子流程** —— 打开内联子流程（标记、双击或属性面板）并就地编辑；面包屑可返回。改动以
   根层级上该子流程节点的 `updateNode` 传给宿主。
 - **校验** —— “问题”标签页列出错误和警告；有问题的元素带有标记；点击某个问题会选中并
-  显示其元素。
+  显示其元素。问题以界面语言显示，并用元素的名称指代元素（`issue*` 标签，每个代码一个，
+  接收 `IssueText`）。
 - **导入 / 导出** —— “JSON / Mermaid” 菜单：把模型导出为 JSON 文件、导入 JSON、导入
   Mermaid `stateDiagram-v2` / `flowchart`（需配合 `mermaid` prop）。导入可以撤销。
 
@@ -69,6 +70,7 @@ function onChange(e: ChangeEvent) {
 | `registry` | `NodeTypeRegistry` | 内置 | 类型；`locked: true` 使类型只读 |
 | `palette` | `string[]` | 全部类型 | 元素面板提供哪些类型及其顺序 |
 | `readonly` | `boolean` | `false` | 仅浏览 |
+| `locked` | `string[]` | `[]` | 用户不能移动、编辑或删除的节点类型（在注册表 `locked: true` 之外） |
 | `snapGrid` | `number` | `20` | `0` 关闭吸附 |
 | `direction`、`edgeStyle` | | | 同 FlowView |
 | `nodeRenderers`、`nodeIcons` | | | 同 FlowView |
@@ -77,6 +79,9 @@ function onChange(e: ChangeEvent) {
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | 导出文件名 |
 | `toastProvider` | `boolean` | `true` | |
+| `fields` | `PropertyFields` | 全部 | 属性面板显示哪些内置字段：`{ node?, edge?, graph? }`，每项是字段键列表（见下文）；不给列表即全部，`[]` 即一个都不显示 |
+| `io` | `boolean` | `true` | `false` 隐藏 JSON / Mermaid 菜单（导出与导入）以及空画布上的导入按钮 |
+| `ignoreIssues` | `IssueCode[]` | `[]` | 从校验中排除的问题代码：问题标签页及其计数、元素上的标记、`validate` 事件和暴露的 `issues` |
 
 事件：`update:modelValue`、`change`（`ChangeEvent`）、`select`（id 列表）、
 `validate`（问题列表，每次改动时触发）、`export`（JSON 文本）。
@@ -88,6 +93,38 @@ function onChange(e: ChangeEvent) {
 
 对自动布局的图进行第一次编辑时，所有节点会固定在当前绘制的位置（在同一撤销步骤中），
 因此不会发生跳动。
+
+## 作为领域编辑器嵌入
+
+当图描述的是宿主自己的东西——节点是状态，边是状态之间的转换——宿主通常带来自己的字段，
+而通用字段需要得更少。三个 prop 收窄编辑器，`properties` 插槽在选中内容下补充其余部分：
+
+```vue
+<FlowEditor
+  v-model="graph"
+  :palette="['start', 'state', 'end']"
+  :locked="['start']"
+  :fields="{ node: ['label', 'transitions'], edge: ['label'], graph: ['title'] }"
+  :io="false"
+  :ignore-issues="['dead-end']"
+>
+  <template #properties="{ selection, graph }">
+    <StateSettings v-if="selection.length === 1" :id="selection[0]" :graph="graph" />
+  </template>
+</FlowEditor>
+```
+
+字段键（`NODE_FIELDS`、`EDGE_FIELDS`、`GRAPH_FIELDS`；类型 `NodeField`、`EdgeField`、
+`GraphField`、`PropertyFields`，来自 `@dskripchenko/flow/vue`）：
+
+| 选中内容 | 键 |
+|---|---|
+| 一个节点 | `label`、`description`、`type`、`join`（带区域的类型）、`group`（图中有分组时）、`enabled`、`transitions`（出边列表和“添加转换到…”）、`subgraph`、`data` |
+| 一条边 | `label`、`condition`、`kind`、`trigger`、`enabled`、`data` |
+| 无 | `title`、`direction` |
+
+节点或边的标题、删除以及多个节点的对齐工具属于操作，始终保留。没有 `enabled` 时，上下文菜单也不提供启用或停用。
+宿主的字段保存在它自己的存储中（按元素 id），或通过 `v-model` 写入 `data`——从外部设置的模型会重置撤销历史。
 
 ## 命令与历史（核心）
 
@@ -118,5 +155,3 @@ history.redo()
 辅助函数：`copyFragment` / `pasteFragment`（新 id，仅保留内部边）、
 `alignNodes`、`distributeNodes`、`layoutCommand(layoutGraph(g, { ignorePositions: true }))`、
 `nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`、`snap(point, grid)`。
-
-| `locked` | `string[]` | `[]` | 用户不能移动、编辑或删除的节点类型（在注册表 `locked: true` 之外） |

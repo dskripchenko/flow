@@ -168,6 +168,17 @@ const issues = validateGraph(graph, { registry })
 Ошибки идут первыми. `issuesByElement(issues)` группирует их по
 идентификатору элемента.
 
+`message` — на английском и называет элементы по идентификатору: для журналов
+и всего, что не интерфейс. Из чего он составлен — в `params` (`IssueParams`:
+`end`, `node`, `group`, `type`, `port`, `wrongKind`, `anyState`). Редактор
+пишет текст проблем сам, по меткам — по одной на код (`issueDuplicateId`,
+`issueUnknownNode`, `issueUnknownPort`, `issueUnknownGroup`, `issueGroupCycle`,
+`issueUnknownType`, `issueMissingStart`, `issueMissingEnd`,
+`issueStartIncoming`, `issueEndOutgoing`, `issueUnreachable`, `issueDeadEnd`,
+`issueEmptyLabel`), и называет элементы по названию; хост переопределяет их
+через `labels` или формулирует проблему так же функцией
+`issueMessage(issue, graph, labels)` из `@dskripchenko/flow/vue`.
+
 ## Раскладка
 
 ```ts

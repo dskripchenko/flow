@@ -52,7 +52,8 @@ function onChange(e: ChangeEvent) {
   Изменения приходят хосту как `updateNode` узла подпроцесса на корне.
 - **Проверять** — вкладка «Проблемы» перечисляет ошибки и предупреждения;
   элементы с проблемами помечены маркером; нажатие на проблему выделяет её
-  элемент и показывает его.
+  элемент и показывает его. Проблемы написаны на языке интерфейса и называют
+  элементы по названию (метки `issue*`, по одной на код, получают `IssueText`).
 - **Импорт / экспорт** — меню «JSON / Mermaid»: экспорт модели в JSON-файл,
   импорт JSON, импорт Mermaid `stateDiagram-v2` / `flowchart` (со свойством
   `mermaid`). Импорт можно отменить.
@@ -82,6 +83,7 @@ function onChange(e: ChangeEvent) {
 | `registry` | `NodeTypeRegistry` | встроенные | типы; `locked: true` делает тип только для чтения |
 | `palette` | `string[]` | все типы | какие типы предлагает панель элементов и в каком порядке |
 | `readonly` | `boolean` | `false` | только просмотр |
+| `locked` | `string[]` | `[]` | типы узлов, которые нельзя двигать, менять и удалять (вдобавок к `locked: true` в реестре) |
 | `snapGrid` | `number` | `20` | `0` выключает привязку |
 | `direction`, `edgeStyle` | | | как во FlowView |
 | `nodeRenderers`, `nodeIcons` | | | как во FlowView |
@@ -90,6 +92,9 @@ function onChange(e: ChangeEvent) {
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | имя экспортируемого файла |
 | `toastProvider` | `boolean` | `true` | |
+| `fields` | `PropertyFields` | все | какие встроенные поля показывает панель свойств: `{ node?, edge?, graph? }`, в каждом — список ключей полей (ниже); без списка — все, `[]` — ни одного |
+| `io` | `boolean` | `true` | `false` прячет меню JSON / Mermaid (экспорт и импорт) и кнопки импорта на пустом холсте |
+| `ignoreIssues` | `IssueCode[]` | `[]` | коды проблем, исключённые из проверки: вкладка «Проблемы» и её счётчик, отметки на элементах, `validate` и `issues` снаружи |
 
 События: `update:modelValue`, `change` (`ChangeEvent`), `select` (идентификаторы),
 `validate` (проблемы, при каждом изменении), `export` (текст JSON).
@@ -102,6 +107,43 @@ function onChange(e: ChangeEvent) {
 
 Первая правка графа, разложенного автоматически, закрепляет каждый узел там,
 где он нарисован (в том же шаге отмены), поэтому ничего не прыгает.
+
+## Встраивание как редактора предметной области
+
+Когда граф описывает что-то своё у хоста — узлы как состояния, рёбра как
+переходы между ними, — хост обычно приносит свои поля, а общих ему нужно
+меньше. Три свойства сужают редактор, а слот `properties` добавляет остальное
+под выделением:
+
+```vue
+<FlowEditor
+  v-model="graph"
+  :palette="['start', 'state', 'end']"
+  :locked="['start']"
+  :fields="{ node: ['label', 'transitions'], edge: ['label'], graph: ['title'] }"
+  :io="false"
+  :ignore-issues="['dead-end']"
+>
+  <template #properties="{ selection, graph }">
+    <StateSettings v-if="selection.length === 1" :id="selection[0]" :graph="graph" />
+  </template>
+</FlowEditor>
+```
+
+Ключи полей (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; типы `NodeField`,
+`EdgeField`, `GraphField`, `PropertyFields` из `@dskripchenko/flow/vue`):
+
+| Выделение | Ключи |
+|---|---|
+| один узел | `label`, `description`, `type`, `join` (типы с регионами), `group` (если в графе есть группы), `enabled`, `transitions` (список исходящих и «Добавить переход к…»), `subgraph`, `data` |
+| одно ребро | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| ничего | `title`, `direction` |
+
+Заголовок узла или ребра, удаление и инструменты выравнивания для нескольких
+узлов — действия, они остаются всегда. Без `enabled` контекстное меню тоже не
+предлагает включить или выключить элемент. Свои поля хост держит в своём
+хранилище по идентификатору элемента или в `data` через `v-model` — модель,
+заданная снаружи, сбрасывает историю отмены.
 
 ## Команды и история (ядро)
 
@@ -133,5 +175,3 @@ history.redo()
 идентификаторы, только внутренние переходы), `alignNodes`, `distributeNodes`,
 `layoutCommand(layoutGraph(g, { ignorePositions: true }))`,
 `nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`, `snap(point, grid)`.
-
-| `locked` | `string[]` | `[]` | типы узлов, которые нельзя двигать, менять и удалять (вдобавок к `locked: true` в реестре) |
