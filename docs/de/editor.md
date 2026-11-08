@@ -82,6 +82,7 @@ Während der Eingabe in ein Feld werden Tastenkürzel ignoriert.
 | `registry` | `NodeTypeRegistry` | eingebaut | Typen; `locked: true` macht einen Typ schreibgeschützt |
 | `palette` | `string[]` | alle Typen | welche Typen der Elementbereich anbietet, in dieser Reihenfolge |
 | `readonly` | `boolean` | `false` | nur ansehen |
+| `locked` | `string[]` | `[]` | Knotentypen, die nicht verschoben, bearbeitet oder gelöscht werden können (zusätzlich zu `locked: true` in der Registry) |
 | `snapGrid` | `number` | `20` | `0` schaltet das Einrasten ab |
 | `direction`, `edgeStyle` | | | wie in FlowView |
 | `nodeRenderers`, `nodeIcons` | | | wie in FlowView |
@@ -90,6 +91,9 @@ Während der Eingabe in ein Feld werden Tastenkürzel ignoriert.
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | der Name der exportierten Datei |
 | `toastProvider` | `boolean` | `true` | |
+| `fields` | `PropertyFields` | alle | welche eingebauten Felder der Eigenschaftenbereich zeigt: `{ node?, edge?, graph? }`, jeweils eine Liste von Feldschlüsseln (unten); ohne Liste alle, `[]` keine |
+| `io` | `boolean` | `true` | `false` blendet das JSON-/Mermaid-Menü (Export und Import) und die Import-Schaltflächen der leeren Zeichenfläche aus |
+| `ignoreIssues` | `IssueCode[]` | `[]` | Problemcodes, die die Prüfung auslässt: der Tab „Probleme“ und sein Zähler, die Markierungen an Elementen, `validate` und das exponierte `issues` |
 
 Events: `update:modelValue`, `change` (`ChangeEvent`), `select` (IDs),
 `validate` (Probleme, bei jeder Änderung), `export` (der JSON-Text).
@@ -103,6 +107,43 @@ werden; Touch: langes Drücken öffnet das Kontextmenü.
 Die erste Bearbeitung eines automatisch angeordneten Graphen fixiert jeden
 Knoten dort, wo er gezeichnet ist (im selben Rückgängig-Schritt), sodass nichts
 springt.
+
+## Einbetten als Facheditor
+
+Wenn der Graph etwas Eigenes des Hosts abbildet — Knoten als Zustände, Kanten
+als Übergänge dazwischen —, bringt der Host meist eigene Felder mit und braucht
+weniger der allgemeinen. Drei Props schränken den Editor ein; der Slot
+`properties` ergänzt den Rest unter der Auswahl:
+
+```vue
+<FlowEditor
+  v-model="graph"
+  :palette="['start', 'state', 'end']"
+  :locked="['start']"
+  :fields="{ node: ['label', 'transitions'], edge: ['label'], graph: ['title'] }"
+  :io="false"
+  :ignore-issues="['dead-end']"
+>
+  <template #properties="{ selection, graph }">
+    <StateSettings v-if="selection.length === 1" :id="selection[0]" :graph="graph" />
+  </template>
+</FlowEditor>
+```
+
+Feldschlüssel (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; Typen `NodeField`,
+`EdgeField`, `GraphField`, `PropertyFields` aus `@dskripchenko/flow/vue`):
+
+| Auswahl | Schlüssel |
+|---|---|
+| ein Knoten | `label`, `description`, `type`, `join` (Typen mit Regionen), `group` (wenn der Graph Gruppen hat), `enabled`, `transitions` (die ausgehende Liste und „Übergang hinzufügen zu…“), `subgraph`, `data` |
+| eine Kante | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| nichts | `title`, `direction` |
+
+Der Kopf des Knotens oder der Kante, Löschen und die Ausrichtungswerkzeuge für
+mehrere Knoten sind Aktionen und bleiben immer. Ohne `enabled` bietet auch das
+Kontextmenü kein Aktivieren oder Deaktivieren an. Eigene Felder hält der Host
+in seinem eigenen Speicher nach Element-ID oder in `data` über `v-model` — ein
+von außen gesetztes Modell setzt den Rückgängig-Verlauf zurück.
 
 ## Befehle und Verlauf (Kern)
 
@@ -133,5 +174,3 @@ history.redo()
 Hilfsfunktionen: `copyFragment` / `pasteFragment` (neue IDs, nur interne Kanten),
 `alignNodes`, `distributeNodes`, `layoutCommand(layoutGraph(g, { ignorePositions: true }))`,
 `nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`, `snap(point, grid)`.
-
-| `locked` | `string[]` | `[]` | Knotentypen, die nicht verschoben, bearbeitet oder gelöscht werden können (zusätzlich zu `locked: true` in der Registry) |

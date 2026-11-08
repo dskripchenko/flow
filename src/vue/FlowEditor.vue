@@ -73,6 +73,7 @@ import {
   type Fragment,
   type Graph,
   type Issue,
+  type IssueCode,
   type NodeTypeRegistry,
   type Point,
 } from '../index'
@@ -82,6 +83,7 @@ import FlowImportDialog from './editor/FlowImportDialog.vue'
 import FlowIssues from './editor/FlowIssues.vue'
 import FlowPalette from './editor/FlowPalette.vue'
 import FlowProperties from './editor/FlowProperties.vue'
+import { showsField, type PropertyFields } from './editor/fields'
 import { useLocaleScope } from './localeScope'
 import { resolveLabels, type FlowLabels } from './labels'
 
@@ -124,6 +126,12 @@ const props = withDefaults(
     toastProvider?: boolean
     /** File name for "Export JSON". */
     exportName?: string
+    /** Which built-in fields the properties panel shows for a node, an edge or the graph; all by default. */
+    fields?: PropertyFields
+    /** The JSON / Mermaid import and export menu and the empty canvas's import buttons. */
+    io?: boolean
+    /** Issue codes left out of validation: the Issues tab, its badge, the element markers and `validate`. */
+    ignoreIssues?: IssueCode[]
   }>(),
   {
     registry: () => defaultRegistry,
@@ -141,6 +149,9 @@ const props = withDefaults(
     mermaid: undefined,
     toastProvider: true,
     exportName: 'process.json',
+    fields: undefined,
+    io: true,
+    ignoreIssues: () => [],
   },
 )
 
@@ -285,7 +296,10 @@ const redoTitle = computed(() => (revision.value, history.next ? `${L.value.redo
 // Validation
 // ---------------------------------------------------------------------------
 
-const issues = computed(() => validateGraph(level.value, { registry: props.registry }))
+const issues = computed(() => {
+  const all = validateGraph(level.value, { registry: props.registry })
+  return props.ignoreIssues.length ? all.filter((i) => !props.ignoreIssues.includes(i.code)) : all
+})
 watch(issues, (v) => emit('validate', v), { immediate: true })
 const issueMap = computed(() => {
   const m = new Map<string, 'error' | 'warning'>()
@@ -570,7 +584,8 @@ function onContextMenu(p: ContextPayload): void {
       entries.push({ label: L.value.cut, icon: Scissors, shortcut: `${mod}X`, action: cut, disabled: locked })
     }
     const el = n ?? level.value.edges.find((x) => x.id === t.id)
-    entries.push({ label: el && isEnabled(el) ? L.value.disable : L.value.enable, icon: Power, action: toggleEnabled, disabled: locked })
+    // Enabling follows the panel: hidden there, not offered here either.
+    if (showsField<string>(n ? props.fields?.node : props.fields?.edge, 'enabled')) entries.push({ label: el && isEnabled(el) ? L.value.disable : L.value.enable, icon: Power, action: toggleEnabled, disabled: locked })
     if (multi) {
       entries.push({ separator: true })
       entries.push({
@@ -772,7 +787,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
           />
         </UidTooltip>
         <span class="fl-toolbar__spacer" />
-        <UidMenu>
+        <UidMenu v-if="io">
           <template #trigger>
             <UidButton
               size="sm"
@@ -928,7 +943,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
                   {{ L.emptyEditorTitle }}
                 </p>
                 <p class="fl-empty__hint">
-                  {{ L.emptyEditorHint }}
+                  {{ io ? L.emptyEditorHint : L.emptyEditorHintNoImport }}
                 </p>
                 <div
                   v-if="!readonly"
@@ -944,7 +959,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
                     {{ L.addStart }}
                   </UidButton>
                   <UidButton
-                    v-if="mermaid"
+                    v-if="io && mermaid"
                     variant="secondary"
                     size="sm"
                     :icon="FileCode"
@@ -953,9 +968,11 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
                     {{ L.importMermaid }}
                   </UidButton>
                   <UidButton
+                    v-if="io"
                     variant="ghost"
                     size="sm"
                     :icon="Upload"
+                    class="fl-empty__import-json"
                     @click="openImport('json')"
                   >
                     {{ L.importJson }}
@@ -1000,6 +1017,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
                 :labels="L"
                 :readonly="readonly"
                 :locked="nodeLocked"
+                :fields="fields"
                 @command="run"
                 @align="align"
                 @distribute="distribute"
@@ -1047,6 +1065,7 @@ defineExpose({ undo, redo, autoLayout, fit: () => canvas.value?.fit(true), selec
       </UidDrawer>
 
       <FlowImportDialog
+        v-if="io"
         v-model:open="importOpen"
         :mode="importMode"
         :labels="L"

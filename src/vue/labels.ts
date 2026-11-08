@@ -122,6 +122,8 @@ export interface FlowLabels {
   connectHint: string
   emptyEditorTitle: string
   emptyEditorHint: string
+  /** The empty canvas's hint when import is off (`io: false`). */
+  emptyEditorHintNoImport: string
   edge: string
   node: string
   group: string
@@ -247,6 +249,7 @@ export const en: FlowLabels = {
   connectHint: 'Drag from a handle to connect',
   emptyEditorTitle: 'Start your process',
   emptyEditorHint: 'Drag a start node from the elements panel, or import a Mermaid state diagram.',
+  emptyEditorHintNoImport: 'Drag a start node from the elements panel.',
   edge: 'Transition',
   node: 'Step',
   group: 'Group',
@@ -372,6 +375,7 @@ export const ru: FlowLabels = {
   connectHint: 'Потяните за точку, чтобы соединить',
   emptyEditorTitle: 'Начните процесс',
   emptyEditorHint: 'Перетащите начальный узел из панели элементов или импортируйте диаграмму состояний Mermaid.',
+  emptyEditorHintNoImport: 'Перетащите начальный узел из панели элементов.',
   edge: 'Переход',
   node: 'Шаг',
   group: 'Группа',

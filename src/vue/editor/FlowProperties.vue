@@ -24,6 +24,7 @@ import {
 import { isEnabled, type Alignment, type Command, type DataValue, type FlowEdge, type FlowNode, type Graph, type NodeTypeRegistry } from '../../index'
 import type { FlowLabels } from '../labels'
 import { NODE_ICONS } from '../icons'
+import { showsField, type EdgeField, type GraphField, type NodeField, type PropertyFields } from './fields'
 
 const props = defineProps<{
   graph: Graph
@@ -32,6 +33,8 @@ const props = defineProps<{
   labels: FlowLabels
   readonly?: boolean
   locked: (node: FlowNode) => boolean
+  /** Which built-in fields to show; all by default. */
+  fields?: PropertyFields
 }>()
 const emit = defineEmits<{
   command: [command: Command, mergeKey?: string]
@@ -50,6 +53,10 @@ const headIcon = computed(() => {
   const def = node.value ? props.registry.get(node.value.type) : undefined
   return (def?.icon && NODE_ICONS[def.icon]) || (node.value && NODE_ICONS[node.value.type]) || NODE_ICONS.state
 })
+const showNode = (f: NodeField) => showsField(props.fields?.node, f)
+const showEdge = (f: EdgeField) => showsField(props.fields?.edge, f)
+const showGraph = (f: GraphField) => showsField(props.fields?.graph, f)
+const showData = computed(() => (node.value ? showNode('data') : edge.value ? showEdge('data') : false))
 const isLocked = computed(() => props.readonly || (!!node.value && props.locked(node.value)))
 
 const typeOptions = computed(() => [...props.registry.entries()].map(([value, def]) => ({ value, label: props.labels.types[value] ?? def.title })))
@@ -235,6 +242,7 @@ defineExpose({
         {{ labels.locked }}
       </UidAlert>
       <UidInput
+        v-if="showNode('label')"
         class="fl-props__label"
         :label="labels.label"
         :model-value="node.label ?? ''"
@@ -242,6 +250,7 @@ defineExpose({
         @update:model-value="(v: string) => patchNode({ label: text(v) }, 'label')"
       />
       <UidTextarea
+        v-if="showNode('description')"
         :label="labels.description"
         :rows="2"
         auto-grow
@@ -250,7 +259,10 @@ defineExpose({
         :disabled="isLocked"
         @update:model-value="(v: string) => patchNode({ description: text(v) }, 'description')"
       />
-      <UidFormField :label="labels.nodeType">
+      <UidFormField
+        v-if="showNode('type')"
+        :label="labels.nodeType"
+      >
         <UidSelect
           :options="typeOptions"
           :model-value="node.type"
@@ -259,7 +271,7 @@ defineExpose({
         />
       </UidFormField>
       <UidFormField
-        v-if="registry.get(node.type)?.regions"
+        v-if="showNode('join') && registry.get(node.type)?.regions"
         :label="labels.join"
       >
         <UidSelect
@@ -270,7 +282,7 @@ defineExpose({
         />
       </UidFormField>
       <UidFormField
-        v-if="graph.groups?.length"
+        v-if="showNode('group') && graph.groups?.length"
         :label="labels.group"
       >
         <UidSelect
@@ -281,6 +293,7 @@ defineExpose({
         />
       </UidFormField>
       <UidSwitch
+        v-if="showNode('enabled')"
         :label="labels.enabled"
         :model-value="isEnabled(node)"
         :disabled="isLocked"
@@ -288,7 +301,7 @@ defineExpose({
       />
 
       <section
-        v-if="!registry.get(node.type)?.annotation"
+        v-if="showNode('transitions') && !registry.get(node.type)?.annotation"
         class="fl-props__section fl-props__transitions"
       >
         <h4>{{ labels.transitions }}</h4>
@@ -319,7 +332,7 @@ defineExpose({
       </section>
 
       <section
-        v-if="drillableType || subgraphKind !== 'none'"
+        v-if="showNode('subgraph') && (drillableType || subgraphKind !== 'none')"
         class="fl-props__section"
       >
         <h4>{{ labels.subprocess }}</h4>
@@ -386,6 +399,7 @@ defineExpose({
         {{ nodeLabel(edge.from) }} → {{ nodeLabel(edge.to) }}
       </p>
       <UidInput
+        v-if="showEdge('label')"
         class="fl-props__label"
         :label="labels.label"
         :model-value="edge.label ?? ''"
@@ -393,6 +407,7 @@ defineExpose({
         @update:model-value="(v: string) => patchEdge({ label: text(v) }, 'label')"
       />
       <UidInput
+        v-if="showEdge('condition')"
         class="fl-props__condition"
         :label="labels.condition"
         :model-value="edge.condition ?? ''"
@@ -400,7 +415,10 @@ defineExpose({
         placeholder="attempts < 3"
         @update:model-value="(v: string) => patchEdge({ condition: text(v) }, 'condition')"
       />
-      <UidFormField :label="labels.edgeKind">
+      <UidFormField
+        v-if="showEdge('kind')"
+        :label="labels.edgeKind"
+      >
         <UidSelect
           :options="kindOptions"
           :model-value="edge.kind ?? 'transition'"
@@ -409,7 +427,7 @@ defineExpose({
         />
       </UidFormField>
       <UidFormField
-        v-if="edge.kind !== 'association'"
+        v-if="showEdge('trigger') && edge.kind !== 'association'"
         :label="labels.trigger"
       >
         <UidSelect
@@ -420,6 +438,7 @@ defineExpose({
         />
       </UidFormField>
       <UidSwitch
+        v-if="showEdge('enabled')"
         :label="labels.enabled"
         :model-value="isEnabled(edge)"
         :disabled="readonly"
@@ -433,12 +452,16 @@ defineExpose({
         {{ labels.nothingSelected }}
       </p>
       <UidInput
+        v-if="showGraph('title')"
         :label="labels.graphTitle"
         :model-value="graph.meta?.title ?? ''"
         :disabled="readonly"
         @update:model-value="(v: string) => emit('command', { type: 'updateMeta', patch: { title: text(v) } }, 'meta-title')"
       />
-      <UidFormField :label="labels.direction">
+      <UidFormField
+        v-if="showGraph('direction')"
+        :label="labels.direction"
+      >
         <UidSelect
           :options="directionOptions"
           :model-value="graph.meta?.direction ?? 'auto'"
@@ -450,8 +473,8 @@ defineExpose({
 
     <!-- Data, for a node or an edge. -->
     <section
-      v-if="(node || edge) && !many"
-      class="fl-props__section"
+      v-if="showData && !many"
+      class="fl-props__section fl-props__data"
     >
       <h4>{{ labels.data }}</h4>
       <div

@@ -223,4 +223,78 @@ describe('FlowEditor', () => {
     await flushPromises()
     expect(model(w).edges.find((e) => e.id === 'e2')!.trigger).toBe('timer')
   })
+
+  it('shows only the built-in fields given in `fields`, the slot still renders', async () => {
+    const w = mount(FlowEditor, {
+      props: { modelValue: structuredClone(orderProcess), toastProvider: false, fields: { node: ['label', 'transitions'], edge: [], graph: ['title'] } },
+      slots: { properties: '<div class="host-fields">host</div>' },
+      attachTo: document.body,
+    })
+    wrappers.push(w)
+    const field = (label: string) => w.findAll('.fl-props .uid-form-field, .fl-props label').some((c) => c.text().includes(label))
+    // Nothing selected: the graph title only.
+    expect(w.text()).toContain('host')
+    expect(field('Layout direction')).toBe(false)
+    expect(field('Title')).toBe(true)
+    await w.find('[data-node-id="new"]').trigger('pointerdown')
+    await flushPromises()
+    expect(w.find('.fl-props__label input').exists()).toBe(true)
+    expect(w.find('.fl-props__transitions').exists()).toBe(true)
+    expect(w.find('.fl-props__connect').exists()).toBe(true)
+    expect(w.find('.fl-props__data').exists()).toBe(false)
+    expect(w.find('.fl-props textarea').exists()).toBe(false)
+    expect(field('Type')).toBe(false)
+    // Delete stays: it is an action, not a field.
+    expect(w.find('.fl-props__delete').exists()).toBe(true)
+    expect(w.find('.host-fields').exists()).toBe(true)
+
+    await w.find('.fl-edge-label[data-edge-id]').trigger('pointerdown')
+    await flushPromises()
+    expect(w.find('.fl-props__label').exists()).toBe(false)
+    expect(w.find('.fl-props__condition').exists()).toBe(false)
+    expect(w.find('.fl-props__data').exists()).toBe(false)
+    expect(w.find('.fl-props__delete').exists()).toBe(true)
+    expect(w.find('.host-fields').exists()).toBe(true)
+  })
+
+  it('shows every built-in field by default', async () => {
+    const w = editor()
+    const field = (label: string) => w.findAll('.fl-props .uid-form-field, .fl-props label').some((c) => c.text().includes(label))
+    expect(field('Layout direction')).toBe(true)
+    await w.find('[data-node-id="new"]').trigger('pointerdown')
+    await flushPromises()
+    expect(field('Type')).toBe(true)
+    await flushPromises()
+    expect(w.find('.fl-props__label input').exists()).toBe(true)
+    expect(w.find('.fl-props textarea').exists()).toBe(true)
+    expect(w.find('.fl-props__transitions').exists()).toBe(true)
+    expect(w.find('.fl-props__data').exists()).toBe(true)
+  })
+
+  it('hides import and export with `io: false`', async () => {
+    const on = editor({ mermaid: fromMermaid, modelValue: { version: 1, nodes: [], edges: [] } })
+    expect(on.find('.fl-toolbar__file').exists()).toBe(true)
+    expect(on.find('.fl-empty__import-json').exists()).toBe(true)
+    const off = editor({ mermaid: fromMermaid, io: false, modelValue: { version: 1, nodes: [], edges: [] } })
+    expect(off.find('.fl-toolbar__file').exists()).toBe(false)
+    expect(off.find('.fl-empty__import-json').exists()).toBe(false)
+    expect(off.find('.fl-editor-empty').text()).not.toContain('Mermaid')
+    expect(off.find('.fl-empty__add-start').exists()).toBe(true)
+  })
+
+  it('drops the issue codes given in `ignoreIssues`', async () => {
+    const graph: Graph = { version: 1, nodes: [{ id: 's', type: 'start' }, { id: 'a', type: 'state', label: 'A' }], edges: [{ id: 'e', from: 's', to: 'a' }] }
+    const w = editor({ modelValue: graph, ignoreIssues: ['dead-end'] })
+    await flushPromises()
+    expect(w.find('.fl-tab-issues__count').text()).toBe('1')
+    expect(w.find('[data-node-id="a"] .fl-node').classes()).not.toContain('has-warning')
+    const codes = (w.emitted('validate')!.at(-1)![0] as { code: string }[]).map((i) => i.code)
+    expect(codes).toEqual(['missing-end'])
+    expect((w.vm as unknown as { issues: { code: string }[] }).issues.map((i) => i.code)).toEqual(['missing-end'])
+
+    const none = editor({ modelValue: structuredClone(graph), ignoreIssues: ['dead-end', 'missing-end'] })
+    await flushPromises()
+    expect(none.find('.fl-tab-issues__count').exists()).toBe(false)
+    expect(none.emitted('validate')!.at(-1)![0]).toEqual([])
+  })
 })

@@ -76,6 +76,7 @@ Shortcuts are ignored while typing in a field.
 | `registry` | `NodeTypeRegistry` | built-in | types; `locked: true` makes a type read-only |
 | `palette` | `string[]` | all types | which types the elements panel offers, in order |
 | `readonly` | `boolean` | `false` | browse only |
+| `locked` | `string[]` | `[]` | node types users cannot move, edit or delete (besides `locked: true` in the registry) |
 | `snapGrid` | `number` | `20` | `0` turns snapping off |
 | `direction`, `edgeStyle` | | | as in FlowView |
 | `nodeRenderers`, `nodeIcons` | | | as in FlowView |
@@ -84,6 +85,9 @@ Shortcuts are ignored while typing in a field.
 | `minimap` | `boolean` | `false` | |
 | `exportName` | `string` | `'process.json'` | the exported file name |
 | `toastProvider` | `boolean` | `true` | |
+| `fields` | `PropertyFields` | all | which built-in fields the properties panel shows: `{ node?, edge?, graph? }`, each a list of field keys (below); a missing list shows all, `[]` none |
+| `io` | `boolean` | `true` | `false` hides the JSON / Mermaid menu (export and import) and the empty canvas's import buttons |
+| `ignoreIssues` | `IssueCode[]` | `[]` | issue codes left out of validation: the Issues tab and its badge, the element markers, `validate` and the exposed `issues` |
 
 Events: `update:modelValue`, `change` (`ChangeEvent`), `select` (ids),
 `validate` (issues, on every change), `export` (the JSON text).
@@ -95,6 +99,43 @@ into drawers opened from the toolbar; touch: long-press opens the context menu.
 
 The first edit of a graph that was laid out automatically fixes every node
 where it is drawn (in the same undo step), so nothing jumps.
+
+## Embedding as a domain editor
+
+When the graph models something of the host's own — nodes as states, edges as
+transitions between them — the host usually brings its own fields and wants
+fewer of the generic ones. Three props narrow the editor; the `properties`
+slot adds the rest under the selection:
+
+```vue
+<FlowEditor
+  v-model="graph"
+  :palette="['start', 'state', 'end']"
+  :locked="['start']"
+  :fields="{ node: ['label', 'transitions'], edge: ['label'], graph: ['title'] }"
+  :io="false"
+  :ignore-issues="['dead-end']"
+>
+  <template #properties="{ selection, graph }">
+    <StateSettings v-if="selection.length === 1" :id="selection[0]" :graph="graph" />
+  </template>
+</FlowEditor>
+```
+
+Field keys (`NODE_FIELDS`, `EDGE_FIELDS`, `GRAPH_FIELDS`; types `NodeField`,
+`EdgeField`, `GraphField`, `PropertyFields` from `@dskripchenko/flow/vue`):
+
+| Selection | Keys |
+|---|---|
+| one node | `label`, `description`, `type`, `join` (types with regions), `group` (when the graph has groups), `enabled`, `transitions` (the outgoing list and "Add a transition to…"), `subgraph`, `data` |
+| one edge | `label`, `condition`, `kind`, `trigger`, `enabled`, `data` |
+| nothing | `title`, `direction` |
+
+The node or edge header, delete and the arrange tools for several nodes are
+actions and always stay. Without `enabled` the context menu does not offer
+enabling or disabling either. Fields of the host are kept in its own store
+keyed by element id, or in `data` through `v-model` — a model set from
+outside resets the undo history.
 
 ## Commands and history (core)
 
@@ -125,5 +166,3 @@ history.redo()
 Helpers: `copyFragment` / `pasteFragment` (fresh ids, internal edges only),
 `alignNodes`, `distributeNodes`, `layoutCommand(layoutGraph(g, { ignorePositions: true }))`,
 `nextId(graph, prefix)`, `findFreeSpot(boxes, size, near, { grid })`, `snap(point, grid)`.
-
-| `locked` | `string[]` | `[]` | node types users cannot move, edit or delete (besides `locked: true` in the registry) |
