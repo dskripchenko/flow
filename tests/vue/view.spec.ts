@@ -147,6 +147,23 @@ describe('FlowView', () => {
     expect(order).toEqual(['persist', 'listener'])
   })
 
+  it('offers a switch only where a toggleable predicate allows it', async () => {
+    const toggleable = vi.fn(({ kind, element }: { kind: string; element: { id: string } }) => kind === 'node' && element.id === 'cancelled')
+    const w = view({ toggleable })
+    await flip(w)
+    expect(w.emitted('toggle')).toEqual([[change, { ok: true }]])
+
+    await tap(w, '[data-node-id="new"]')
+    await flushPromises()
+    expect(document.body.querySelector('.fl-details__toggle input')).toBeNull()
+    await w.find('[data-node-id="cancelled"]').trigger('pointerenter')
+    expect(w.find('.fl-hovebar').exists()).toBe(true)
+    await w.find('[data-node-id="cancelled"]').trigger('pointerleave')
+    await w.find('[data-node-id="new"]').trigger('pointerenter')
+    expect(w.find('.fl-hovebar').exists()).toBe(false)
+    expect(toggleable).toHaveBeenCalledWith(expect.objectContaining({ kind: 'node' }))
+  })
+
   it('emits toggle at once without a persist function', async () => {
     const w = view({ toggleable: true })
     await flip(w)

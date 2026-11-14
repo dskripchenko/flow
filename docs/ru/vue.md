@@ -23,7 +23,7 @@ import '@dskripchenko/flow/style.css'
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | опрашивать эндпоинт ([мониторинг](monitoring.md)) |
 | `pollParams` | `unknown` | — | передаётся в `poll.fetch` как `context.params` (id экземпляра, фильтр); изменение сразу перезапускает опрос |
 | `staleAfterMs` | `number` | 3 интервала, ≥ 15 с | предупреждение об устаревании |
-| `toggleable` | `boolean` | `false` | переключатели при наведении и в панели деталей |
+| `toggleable` | `boolean \| (target) => boolean` | `false` | переключатели при наведении и в панели деталей; функция `({ kind, element }) => boolean` выбирает, у каких узлов и переходов он есть |
 | `persistToggle` | `(change) => Promise \| void` | — | сохраняет переключение; отказ откатывает его и показывает тост с ошибкой |
 | `onToggle` | `(change) => Promise \| void` | — | **устарело**: псевдоним `persistToggle`, будет удалён в 2.0 (см. ниже) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | графы для строковых ссылок `subgraph` |
