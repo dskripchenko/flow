@@ -23,7 +23,7 @@ switches, drill-down into sub-processes and a details drawer.
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | poll an endpoint instead ([monitoring](monitoring.md)) |
 | `pollParams` | `unknown` | — | handed to `poll.fetch` as `context.params` (an instance id, a filter); a change restarts polling at once |
 | `staleAfterMs` | `number` | 3 intervals, ≥ 15 s | the stale warning |
-| `toggleable` | `boolean` | `false` | enable/disable switches on hover and in the drawer |
+| `toggleable` | `boolean \| (target) => boolean` | `false` | enable/disable switches on hover and in the drawer; a predicate `({ kind, element }) => boolean` chooses which nodes and edges get one |
 | `persistToggle` | `(change) => Promise \| void` | — | persists a toggle; a rejection rolls it back with an error toast |
 | `onToggle` | `(change) => Promise \| void` | — | **deprecated** alias of `persistToggle`, removed in 2.0 (see below) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | graphs for string `subgraph` references |

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mayToggle, type Toggleable } from './toggle'
 /**
  * The drawing surface shared by FlowView and FlowEditor: an SVG with groups,
  * edges and nodes under a pan/zoom transform, keyboard focus, selection, the
@@ -97,7 +98,7 @@ const props = withDefaults(
     /** Element id → worst issue severity. */
     issues?: ReadonlyMap<string, 'error' | 'warning'>
     editable?: boolean
-    toggleable?: boolean
+    toggleable?: Toggleable
     /** Ids whose enabled flag is overridden (optimistic toggles). */
     enabledOverrides?: ReadonlyMap<string, boolean>
     /** Node types whose nodes the editor must not change. */
@@ -854,17 +855,18 @@ const toolbar = computed(() => {
   const n = nodesById.value.get(id)
   if (n) {
     const drill = isDrillable(n)
-    if (!props.toggleable && !drill) return null
+    const toggle = mayToggle(props.toggleable, { kind: 'node', element: n })
+    if (!toggle && !drill) return null
     const b = nodeBoxes.value.get(id)
     if (!b) return null
-    return { kind: 'node' as const, id, x: b.x * v.k + v.x, y: (b.y - b.height / 2) * v.k + v.y, enabled: !nodeDisabled(n), drill, label: n.label ?? n.id }
+    return { kind: 'node' as const, id, x: b.x * v.k + v.x, y: (b.y - b.height / 2) * v.k + v.y, enabled: !nodeDisabled(n), drill, toggle, label: n.label ?? n.id }
   }
   const e = edgesById.value.get(id)
-  if (e && props.toggleable) {
+  if (e && mayToggle(props.toggleable, { kind: 'edge', element: e })) {
     const geo = edgeGeometry.value.get(id)
     if (!geo) return null
     const at = geo.label ?? geo.points[Math.floor(geo.points.length / 2)]!
-    return { kind: 'edge' as const, id, x: at.x * v.k + v.x, y: (at.y - (geo.label ? geo.label.height / 2 : 0)) * v.k + v.y, enabled: enabledOf('edge', e), drill: false, label: e.label ?? `${e.from} → ${e.to}` }
+    return { kind: 'edge' as const, id, x: at.x * v.k + v.x, y: (at.y - (geo.label ? geo.label.height / 2 : 0)) * v.k + v.y, enabled: enabledOf('edge', e), drill: false, toggle: true, label: e.label ?? `${e.from} → ${e.to}` }
   }
   return null
 })
@@ -1286,7 +1288,7 @@ function iconFor(n: FlowNode): Component | undefined {
               :class="edgeClass(e)"
               :data-edge-id="e.id"
               :data-focus-id="e.id"
-              :tabindex="editable || toggleable ? 0 : -1"
+              :tabindex="editable || mayToggle(toggleable, { kind: 'edge', element: e }) ? 0 : -1"
               role="button"
               :aria-label="edgeAria(e)"
               :aria-pressed="selected.has(e.id)"
@@ -1475,7 +1477,7 @@ function iconFor(n: FlowNode): Component | undefined {
       @pointerleave="setHover(null)"
     >
       <UidSwitch
-        v-if="toggleable"
+        v-if="toolbar.toggle"
         size="sm"
         :model-value="toolbar.enabled"
         :label="labels.enabled"

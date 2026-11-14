@@ -21,7 +21,7 @@ import '@dskripchenko/flow/style.css'
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | 改为轮询端点（[监控](monitoring.md)） |
 | `pollParams` | `unknown` | — | 作为 `context.params` 传给 `poll.fetch`（实例 id、过滤条件）；变化时立即重启轮询 |
 | `staleAfterMs` | `number` | 3 个间隔，≥ 15 秒 | 过期警告 |
-| `toggleable` | `boolean` | `false` | 悬停时和抽屉中的启用/禁用开关 |
+| `toggleable` | `boolean \| (target) => boolean` | `false` | 悬停时和抽屉中的启用/禁用开关；谓词 `({ kind, element }) => boolean` 决定哪些节点和边有开关 |
 | `persistToggle` | `(change) => Promise \| void` | — | 持久化切换；被拒绝时回滚并弹出错误提示 |
 | `onToggle` | `(change) => Promise \| void` | — | **已弃用**：`persistToggle` 的别名，将在 2.0 中移除（见下文） |
 | `subgraphs` | `Record<string, Graph>` | `{}` | 字符串 `subgraph` 引用对应的图 |

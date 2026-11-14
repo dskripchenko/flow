@@ -24,7 +24,7 @@ Detail-Drawer.
 | `poll` | `{ fetch(signal, context), intervalMs?, backoff?, merge?, visibilityPause? }` | — | stattdessen einen Endpunkt abfragen ([Monitoring](monitoring.md)) |
 | `pollParams` | `unknown` | — | wird `poll.fetch` als `context.params` übergeben (Instanz-ID, Filter); eine Änderung startet das Polling sofort neu |
 | `staleAfterMs` | `number` | 3 Intervalle, ≥ 15 s | die Veraltet-Warnung |
-| `toggleable` | `boolean` | `false` | Schalter zum Aktivieren/Deaktivieren bei Hover und im Drawer |
+| `toggleable` | `boolean \| (target) => boolean` | `false` | Schalter zum Aktivieren/Deaktivieren bei Hover und im Drawer; ein Prädikat `({ kind, element }) => boolean` wählt, welche Knoten und Kanten einen bekommen |
 | `persistToggle` | `(change) => Promise \| void` | — | speichert ein Umschalten; eine Ablehnung macht es mit einem Fehler-Toast rückgängig |
 | `onToggle` | `(change) => Promise \| void` | — | **veraltet**: Alias von `persistToggle`, entfällt in 2.0 (siehe unten) |
 | `subgraphs` | `Record<string, Graph>` | `{}` | Graphen für `subgraph`-Referenzen als Zeichenkette |

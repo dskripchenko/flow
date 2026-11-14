@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mayToggle, type Toggleable, type ToggleTarget } from './toggle'
 /**
  * FlowView — a process or state machine, read-only, with live monitoring,
  * enable/disable switches, drill-down into sub-processes and a details
@@ -77,7 +78,11 @@ const props = withDefaults(
     pollParams?: unknown
     /** After how long without data the overlay warns; 3 poll intervals (min 15 s) by default. */
     staleAfterMs?: number
-    toggleable?: boolean
+    /**
+     * Enable/disable switches: `true` for every node and edge, or a predicate
+     * choosing which elements get one (`({ kind, element }) => boolean`).
+     */
+    toggleable?: Toggleable
     /** Persists a toggle; a rejection rolls it back and shows an error. */
     persistToggle?: PersistToggle
     /**
@@ -342,6 +347,8 @@ function enabledOf(kind: 'node' | 'edge', el: FlowNode | FlowEdge): boolean {
 const pending = new Map<string, number>()
 
 async function toggle(change: { kind: 'node' | 'edge'; id: string; enabled: boolean }): Promise<void> {
+  const element = change.kind === 'node' ? shown.value.nodes.find((n) => n.id === change.id) : shown.value.edges.find((e) => e.id === change.id)
+  if (!element || !mayToggle(props.toggleable, { kind: change.kind, element } as ToggleTarget)) return
   const full: ToggleChange = { ...change, path: path.value }
   const key = `${levelKey.value}\u0000${change.id}`
   const before = overrides.value.get(key)
@@ -611,7 +618,7 @@ defineExpose({
           :enabled="enabledOf(selectedRef.kind as 'node', selectedElement)"
           :state="monitor.state.value"
           :labels="L"
-          :toggleable="toggleable"
+          :toggleable="mayToggle(toggleable, { kind: selectedRef.kind, element: selectedElement } as ToggleTarget)"
           :drillable="selectedRef.kind === 'node' && canEnter(selectedElement as FlowNode)"
           :status-tones="statusTones"
           :locale="lang"
